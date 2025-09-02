@@ -283,6 +283,13 @@ void handleSSE() {
   }
 }
 
+// Function prototypes
+void serveFile(WiFiClient client, String path, String contentType);
+void handleStatus(WiFiClient client);
+void handleSaveWiFi(WiFiClient client, String body);
+void handleScanNetworks(WiFiClient client);
+void handleControl(WiFiClient client, String body);
+
 // Function to handle web server requests
 void handleWebServer() {
   // Handle SSE first
@@ -305,97 +312,220 @@ void handleWebServer() {
       client.readStringUntil('\n');
     } while (line.length() > 0);
 
-    bool credentialsUpdated = false;
-    bool scanRequested = false;
-    if (request.indexOf("POST") >= 0) {
-      // Read body
+    String method = request.substring(0, request.indexOf(' '));
+    String path = request.substring(request.indexOf(' ') + 1, request.indexOf(' ', request.indexOf(' ') + 1));
+
+    if (method == "GET") {
+      if (path == "/" || path == "/index.html") {
+        serveFile(client, "/index.html", "text/html");
+      } else if (path == "/script.js") {
+        serveFile(client, "/script.js", "application/javascript");
+      } else if (path == "/status") {
+        handleStatus(client);
+      } else {
+        client.println("HTTP/1.1 404 Not Found");
+        client.println("Content-Type: text/plain");
+        client.println();
+        client.println("404 Not Found");
+      }
+    } else if (method == "POST") {
       String body = "";
       while (client.available()) {
         body += (char)client.read();
       }
 
-      // Check if scan was requested
-      if (body.indexOf("scan=1") >= 0) {
-        scanRequested = true;
-        scanNetworks();
+      if (path == "/save-wifi") {
+        handleSaveWiFi(client, body);
+      } else if (path == "/scan-networks") {
+        handleScanNetworks(client);
+      } else if (path == "/control") {
+        handleControl(client, body);
       } else {
-        // Parse form data using improved parser
-        String ssidValue = "";
-        String passValue = "";
-
-        SERIAL_PRINTLN("Raw POST body: " + body);
-
-        if (parseFormData(body, ssidValue, passValue)) {
-          SERIAL_PRINTLN("Parsed SSID: '" + ssidValue + "'");
-          SERIAL_PRINTLN("Parsed Password: '" + passValue + "'");
-
-          // Copy to global variables
-          ssidValue.toCharArray(ssid, sizeof(ssid));
-          passValue.toCharArray(password, sizeof(password));
-
-          // Save to preferences
-          preferences.putString("ssid", ssid);
-          preferences.putString("password", password);
-
-          SERIAL_PRINTLN("WiFi credentials updated and saved");
-          SERIAL_PRINTLN("New SSID: " + String(ssid));
-          SERIAL_PRINTLN("New Password length: " + String(strlen(password)));
-
-          credentialsUpdated = true;
-        } else {
-          SERIAL_PRINTLN("Failed to parse form data");
-          SERIAL_PRINTLN("SSID value: '" + ssidValue + "'");
-          SERIAL_PRINTLN("Password value: '" + passValue + "'");
-        }
+        client.println("HTTP/1.1 404 Not Found");
+        client.println("Content-Type: text/plain");
+        client.println();
+        client.println("404 Not Found");
       }
     }
 
-    // Send HTML response
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println("");
-    client.println(generateHTML(credentialsUpdated, scanRequested));
     client.stop();
-
-    // Now attempt reconnection after sending response
-    if (credentialsUpdated) {
-      SERIAL_PRINTLN("Attempting to reconnect to new WiFi...");
-      SERIAL_PRINTLN("Disconnecting from current WiFi...");
-      WiFi.disconnect(true);
-      delay(1000);
-
-      SERIAL_PRINTLN("Switching to STA mode...");
-      WiFi.mode(WIFI_STA);
-      delay(500);
-
-      SERIAL_PRINTLN("Connecting to: " + String(ssid));
-      WiFi.begin(ssid, password);
-
-      // Wait for connection with timeout
-      int attempts = 0;
-      const int maxAttempts = 20;
-      while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
-        delay(500);
-        attempts++;
-        SERIAL_PRINT(".");
-      }
-      SERIAL_PRINTLN();
-
-      if (WiFi.status() == WL_CONNECTED) {
-        SERIAL_PRINTLN("Reconnected successfully!");
-        SERIAL_PRINT("IP Address: ");
-        SERIAL_PRINTLN(WiFi.localIP());
-        // AP mode disabled, web server stops
-      } else {
-        SERIAL_PRINTLN("Reconnection failed, switching back to AP mode");
-        SERIAL_PRINTLN("WiFi status: " + String(WiFi.status()));
-        WiFi.mode(WIFI_AP);
-        delay(500);
-        WiFi.softAP(ap_ssid, ap_password);
-        server.begin();
-        SERIAL_PRINT("AP IP Address: ");
-        SERIAL_PRINTLN(WiFi.softAPIP());
-      }
-    }
   }
+}
+
+// Helper function to serve static files from LittleFS
+void serveFile(WiFiClient client, String path, String contentType) {
+  if (LittleFS.exists(path)) {
+    File file = LittleFS.open(path, "r");
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: " + contentType);
+    client.println();
+    while (file.available()) {
+      client.write(file.read());
+    }
+    file.close();
+  } else {
+    client.println("HTTP/1.1 404 Not Found");
+    client.println("Content-Type: text/plain");
+    client.println();
+    client.println("File not found");
+  }
+}
+
+// Handle status endpoint
+void handleStatus(WiFiClient client) {
+  String json = "{";
+  if (WiFi.getMode() == WIFI_AP) {
+    IPAddress apIP = WiFi.softAPIP();
+    json += "\"mode\":\"AP\",";
+    json += "\"ssid\":\"" + String(ap_ssid) + "\",";
+    json += "\"ip\":\"" + apIP.toString() + "\"";
+    SERIAL_PRINTLN("AP Mode - IP: " + apIP.toString());
+  } else if (WiFi.status() == WL_CONNECTED) {
+    IPAddress localIP = WiFi.localIP();
+    json += "\"mode\":\"STA\",";
+    json += "\"connected\":true,";
+    json += "\"ssid\":\"" + WiFi.SSID() + "\",";
+    json += "\"ip\":\"" + localIP.toString() + "\"";
+    SERIAL_PRINTLN("STA Mode - IP: " + localIP.toString());
+  } else {
+    json += "\"mode\":\"STA\",";
+    json += "\"connected\":false,";
+    json += "\"ssid\":\"" + String(ssid) + "\"";
+    SERIAL_PRINTLN("Not connected to WiFi");
+  }
+  json += "}";
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println();
+  client.println(json);
+}
+
+// Handle save WiFi endpoint
+void handleSaveWiFi(WiFiClient client, String body) {
+  // Parse JSON body
+  String ssidValue = "";
+  String passValue = "";
+
+  int ssidStart = body.indexOf("\"ssid\":\"") + 8;
+  int ssidEnd = body.indexOf("\"", ssidStart);
+  if (ssidStart > 7 && ssidEnd > ssidStart) {
+    ssidValue = body.substring(ssidStart, ssidEnd);
+  }
+
+  int passStart = body.indexOf("\"password\":\"") + 12;
+  int passEnd = body.indexOf("\"", passStart);
+  if (passStart > 11 && passEnd > passStart) {
+    passValue = body.substring(passStart, passEnd);
+  }
+
+  if (ssidValue.length() > 0) {
+    ssidValue.toCharArray(ssid, sizeof(ssid));
+    passValue.toCharArray(password, sizeof(password));
+    preferences.putString("ssid", ssid);
+    preferences.putString("password", password);
+
+    SERIAL_PRINTLN("WiFi credentials updated: " + ssidValue);
+
+    // Attempt reconnection
+    WiFi.disconnect(true);
+    delay(1000);
+    WiFi.mode(WIFI_STA);
+    delay(500);
+    WiFi.begin(ssid, password);
+
+    // Wait for connection
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+      delay(500);
+      attempts++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      SERIAL_PRINTLN("Reconnected successfully!");
+      SERIAL_PRINT("New IP Address: ");
+      SERIAL_PRINTLN(WiFi.localIP().toString());
+      server.begin();  // Start server after reconnection
+    } else {
+      SERIAL_PRINTLN("Reconnection failed");
+    }
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println();
+    client.println("{\"success\":true,\"message\":\"WiFi credentials saved\"}");
+  } else {
+    client.println("HTTP/1.1 400 Bad Request");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println();
+    client.println("{\"success\":false,\"message\":\"Invalid credentials\"}");
+  }
+}
+
+// Handle scan networks endpoint
+void handleScanNetworks(WiFiClient client) {
+  scanNetworks();
+  String json = "{\"networks\":[";
+  // Parse scannedNetworks to JSON
+  int start = 0;
+  int end = scannedNetworks.indexOf("<option", start);
+  bool first = true;
+  while (end != -1) {
+    int valueStart = scannedNetworks.indexOf("value='", end) + 7;
+    int valueEnd = scannedNetworks.indexOf("'", valueStart);
+    String ssid = scannedNetworks.substring(valueStart, valueEnd);
+
+    int textStart = scannedNetworks.indexOf(">", valueEnd) + 1;
+    int textEnd = scannedNetworks.indexOf("</option>", textStart);
+    String text = scannedNetworks.substring(textStart, textEnd);
+
+    if (!first) json += ",";
+    json += "{\"ssid\":\"" + ssid + "\",\"rssi\":\"" + text.substring(text.indexOf("(") + 1, text.indexOf(")")) + "\",\"encryption\":\"" + (text.indexOf("Open") != -1 ? "Open" : "Secured") + "\"}";
+    first = false;
+
+    start = textEnd + 9;
+    end = scannedNetworks.indexOf("<option", start);
+  }
+  json += "]}";
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println();
+  client.println(json);
+}
+
+// Handle control endpoint (placeholder for robot commands)
+void handleControl(WiFiClient client, String body) {
+  // Parse JSON body
+  String command = "";
+  String value = "";
+
+  int cmdStart = body.indexOf("\"command\":\"") + 11;
+  int cmdEnd = body.indexOf("\"", cmdStart);
+  if (cmdStart > 10 && cmdEnd > cmdStart) {
+    command = body.substring(cmdStart, cmdEnd);
+  }
+
+  int valStart = body.indexOf("\"value\":\"") + 9;
+  int valEnd = body.indexOf("\"", valStart);
+  if (valStart > 8 && valEnd > valStart) {
+    value = body.substring(valStart, valEnd);
+  }
+
+  SERIAL_PRINTLN("Robot command: " + command + (value.length() > 0 ? " " + value : ""));
+
+  // Here you would add your robot control logic
+  // For example:
+  // if (command == "forward") { moveForward(); }
+  // else if (command == "speed") { setSpeed(value.toInt()); }
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println();
+  client.println("{\"success\":true,\"message\":\"Command received: " + command + "\"}");
 }

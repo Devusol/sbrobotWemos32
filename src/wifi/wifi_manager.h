@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <Preferences.h>
+#include <LittleFS.h>
 
 // Serial capturing functionality
 extern String serialBuffer;

@@ -12,6 +12,13 @@ Preferences preferences;
 WiFiServer server(80);
 
 void initWiFi() {
+  // Initialize LittleFS
+  if (!LittleFS.begin(true)) {
+    SERIAL_PRINTLN("LittleFS Mount Failed");
+    return;
+  }
+  SERIAL_PRINTLN("LittleFS mounted successfully");
+
   preferences.begin("wifi", false);
   preferences.getString("ssid", ssid, sizeof(ssid));
   preferences.getString("password", password, sizeof(password));
@@ -31,7 +38,8 @@ void initWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     SERIAL_PRINTLN("\nConnected to WiFi!");
     SERIAL_PRINT("IP Address: ");
-    SERIAL_PRINTLN_STR(WiFi.localIP());
+    SERIAL_PRINTLN(WiFi.localIP().toString());
+    server.begin();  // Start server in STA mode
   } else {
     SERIAL_PRINTLN("\nFailed to connect, switching to AP mode.");
     switchToAPMode();
@@ -43,7 +51,7 @@ void switchToAPMode() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ap_ssid, ap_password);
   SERIAL_PRINT("AP IP Address: ");
-  SERIAL_PRINTLN_STR(WiFi.softAPIP());
+  SERIAL_PRINTLN(WiFi.softAPIP().toString());
   server.begin();
 }
 

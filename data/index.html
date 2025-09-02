@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #serialConsole {
+            height: 300px;
+            overflow-y: auto;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .control-panel {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-title">Robot Control Interface</h1>
+                        <div id="statusAlert"></div>
+                    </div>
+                    <div class="card-body">
+                        <!-- WiFi Configuration Section -->
+                        <h4>WiFi Configuration</h4>
+                        <form id="wifiForm">
+                            <div class="mb-3">
+                                <label for="ssid" class="form-label">SSID</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="ssid" name="ssid" required>
+                                    <button type="button" id="scanBtn" class="btn btn-outline-secondary">Scan Networks</button>
+                                </div>
+                                <select class="form-select mt-2" id="networkSelect">
+                                    <option value="">Select from scanned networks...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save WiFi</button>
+                        </form>
+
+                        <hr>
+
+                        <!-- Robot Control Section -->
+                        <h4>Robot Control</h4>
+                        <div class="control-panel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button id="forwardBtn" class="btn btn-success btn-lg mb-2">Forward</button>
+                                    <button id="stopBtn" class="btn btn-danger btn-lg mb-2">Stop</button>
+                                    <button id="backwardBtn" class="btn btn-warning btn-lg">Backward</button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button id="leftBtn" class="btn btn-info btn-lg mb-2">Turn Left</button>
+                                    <button id="rightBtn" class="btn btn-info btn-lg">Turn Right</button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label for="speedSlider" class="form-label">Speed: <span id="speedValue">50</span>%</label>
+                                <input type="range" class="form-range" id="speedSlider" min="0" max="100" value="50">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Serial Console Section -->
+                        <h4>Serial Console</h4>
+                        <div id="serialConsole"></div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Console</button>
+                            <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="scrollToBottom()">Scroll to Bottom</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

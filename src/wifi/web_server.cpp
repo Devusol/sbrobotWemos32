@@ -1,4 +1,5 @@
 #include "wifi_manager.h"
+#include "control/input_controller.h"
 
 // Network scan results
 String scannedNetworks = "";
@@ -518,10 +519,21 @@ void handleControl(WiFiClient client, String body) {
 
   SERIAL_PRINTLN("Robot command: " + command + (value.length() > 0 ? " " + value : ""));
 
-  // Here you would add your robot control logic
-  // For example:
-  // if (command == "forward") { moveForward(); }
-  // else if (command == "speed") { setSpeed(value.toInt()); }
+  // Handle different commands using the controller
+  if (command == "speed") {
+    int speedValue = value.toInt();
+    setSpeed(speedValue);
+  } else if (command == "forward") {
+    moveForward();
+  } else if (command == "backward") {
+    moveBackward();
+  } else if (command == "left") {
+    turnLeft();
+  } else if (command == "right") {
+    turnRight();
+  } else if (command == "stop") {
+    stopMovement();
+  }
 
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");

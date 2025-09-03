@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <Preferences.h>
 #include <LittleFS.h>
+#include <WebSocketsServer.h>
 
 // Serial capturing functionality
 extern String serialBuffer;
@@ -28,6 +29,7 @@ extern const char* ap_ssid;
 extern const char* ap_password;
 extern Preferences preferences;
 extern WiFiServer server;
+extern WebSocketsServer webSocket;
 extern String scannedNetworks;
 
 void initWiFi();
@@ -35,5 +37,6 @@ void switchToAPMode();
 void onWiFiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void handleWebServer();
 void scanNetworks();
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
 #endif

@@ -14,6 +14,5 @@ void setup() {
 
 void loop() {
   handleWebServer();
-  webSocket.loop();  // Handle WebSocket connections
   // Main code for the robot's balancing loop
 }

@@ -276,6 +276,7 @@ void handleSSE() {
       serialBuffer = "";
       client.println("HTTP/1.1 200 OK");
       client.println("Content-Type: text/plain");
+      client.println("Connection: close");
       client.println();
       client.println("Console cleared");
       client.stop();
@@ -317,6 +318,7 @@ void handleWebServer() {
     String path = request.substring(request.indexOf(' ') + 1, request.indexOf(' ', request.indexOf(' ') + 1));
 
     if (method == "GET") {
+      SERIAL_PRINTLN("GET request for: " + path);
       if (path == "/" || path == "/index.html") {
         serveFile(client, "/index.html", "text/html");
       } else if (path == "/script.js") {
@@ -326,6 +328,7 @@ void handleWebServer() {
       } else {
         client.println("HTTP/1.1 404 Not Found");
         client.println("Content-Type: text/plain");
+        client.println("Connection: close");
         client.println();
         client.println("404 Not Found");
       }
@@ -344,6 +347,7 @@ void handleWebServer() {
       } else {
         client.println("HTTP/1.1 404 Not Found");
         client.println("Content-Type: text/plain");
+        client.println("Connection: close");
         client.println();
         client.println("404 Not Found");
       }
@@ -355,20 +359,37 @@ void handleWebServer() {
 
 // Helper function to serve static files from LittleFS
 void serveFile(WiFiClient client, String path, String contentType) {
+  SERIAL_PRINTLN("Serving file: " + path);
   if (LittleFS.exists(path)) {
+    SERIAL_PRINTLN("File exists, opening...");
     File file = LittleFS.open(path, "r");
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: " + contentType);
-    client.println();
-    while (file.available()) {
-      client.write(file.read());
+    if (file) {
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: " + contentType);
+      client.println("Connection: close");
+      client.println();
+      size_t bytesSent = 0;
+      while (file.available()) {
+        client.write(file.read());
+        bytesSent++;
+      }
+      file.close();
+      SERIAL_PRINTLN("File sent successfully, bytes: " + String(bytesSent));
+    } else {
+      SERIAL_PRINTLN("Error opening file");
+      client.println("HTTP/1.1 500 Internal Server Error");
+      client.println("Content-Type: text/plain");
+      client.println("Connection: close");
+      client.println();
+      client.println("Error opening file");
     }
-    file.close();
   } else {
+    SERIAL_PRINTLN("File not found: " + path);
     client.println("HTTP/1.1 404 Not Found");
     client.println("Content-Type: text/plain");
+    client.println("Connection: close");
     client.println();
-    client.println("File not found");
+    client.println("File not found: " + path);
   }
 }
 
@@ -399,6 +420,7 @@ void handleStatus(WiFiClient client) {
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");
   client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
   client.println();
   client.println(json);
 }
@@ -455,12 +477,14 @@ void handleSaveWiFi(WiFiClient client, String body) {
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
     client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
     client.println();
     client.println("{\"success\":true,\"message\":\"WiFi credentials saved\"}");
   } else {
     client.println("HTTP/1.1 400 Bad Request");
     client.println("Content-Type: application/json");
     client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
     client.println();
     client.println("{\"success\":false,\"message\":\"Invalid credentials\"}");
   }
@@ -495,11 +519,12 @@ void handleScanNetworks(WiFiClient client) {
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");
   client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
   client.println();
   client.println(json);
 }
 
-// Handle control endpoint (placeholder for robot commands)
+// Handle control endpoint (for robot commands)
 void handleControl(WiFiClient client, String body) {
   // Parse JSON body
   String command = "";
@@ -517,27 +542,15 @@ void handleControl(WiFiClient client, String body) {
     value = body.substring(valStart, valEnd);
   }
 
-  SERIAL_PRINTLN("Robot command: " + command + (value.length() > 0 ? " " + value : ""));
+  SERIAL_PRINTLN("Robot command received: " + command + (value.length() > 0 ? " " + value : ""));
 
-  // Handle different commands using the controller
-  if (command == "speed") {
-    int speedValue = value.toInt();
-    setSpeed(speedValue);
-  } else if (command == "forward") {
-    moveForward();
-  } else if (command == "backward") {
-    moveBackward();
-  } else if (command == "left") {
-    turnLeft();
-  } else if (command == "right") {
-    turnRight();
-  } else if (command == "stop") {
-    stopMovement();
-  }
+  // Handle command using the controller
+  handleRobotCommand(command, value);
 
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");
   client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
   client.println();
   client.println("{\"success\":true,\"message\":\"Command received: " + command + "\"}");
 }

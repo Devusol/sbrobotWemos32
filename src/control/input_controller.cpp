@@ -1,8 +1,4 @@
 #include "input_controller.h"
-#include <WebSocketsServer.h>
-
-// WebSocket server pointer
-WebSocketsServer* webSocketPtr = nullptr;
 
 // Onboard LED pin for testing (GPIO 2 on most ESP32 boards)
 #define LED_PIN 2
@@ -27,26 +23,9 @@ void initController() {
     Serial.println("Controller initialized - LED PWM ready for testing");
 }
 
-// Set WebSocket server pointer
-void setWebSocketServer(WebSocketsServer* ws) {
-    webSocketPtr = ws;
-}
-
-// Broadcast status to all WebSocket clients
-void broadcastStatus(const char* status) {
-    if (webSocketPtr) {
-        String message = "{\"status\":\"";
-        message += status;
-        message += "\",\"speed\":";
-        message += String(currentSpeed);
-        message += "}";
-        webSocketPtr->broadcastTXT(message);
-    }
-}
-
-// Handle WebSocket commands
-void handleWebSocketCommand(uint8_t clientNum, String command, String value) {
-    Serial.print("Handling WebSocket command: ");
+// Handle robot commands (called from HTTP POST handler)
+void handleRobotCommand(String command, String value) {
+    Serial.print("Handling robot command: ");
     Serial.print(command);
     if (value.length() > 0) {
         Serial.print(" with value: ");
@@ -58,33 +37,24 @@ void handleWebSocketCommand(uint8_t clientNum, String command, String value) {
     if (command == "speed") {
         int speedValue = value.toInt();
         setSpeed(speedValue);
-
-        // Send acknowledgment
-        if (webSocketPtr) {
-            String response = "{\"command\":\"speed\",\"value\":";
-            response += String(speedValue);
-            response += ",\"acknowledged\":true}";
-            webSocketPtr->sendTXT(clientNum, response);
-        }
+        Serial.println("Speed command processed successfully");
     } else if (command == "forward") {
         moveForward();
-        broadcastStatus("moving_forward");
+        Serial.println("Forward command processed successfully");
     } else if (command == "backward") {
         moveBackward();
-        broadcastStatus("moving_backward");
+        Serial.println("Backward command processed successfully");
     } else if (command == "left") {
         turnLeft();
-        broadcastStatus("turning_left");
+        Serial.println("Left turn command processed successfully");
     } else if (command == "right") {
         turnRight();
-        broadcastStatus("turning_right");
+        Serial.println("Right turn command processed successfully");
     } else if (command == "stop") {
         stopMovement();
-        broadcastStatus("stopped");
-    } else if (command == "ping") {
-        if (webSocketPtr) {
-            webSocketPtr->sendTXT(clientNum, "{\"response\":\"pong\"}");
-        }
+        Serial.println("Stop command processed successfully");
+    } else {
+        Serial.println("Unknown command: " + command);
     }
 }
 

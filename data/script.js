@@ -1,80 +1,16 @@
-// script.js - JavaScript for Robot Control Interface with WebSockets
+// script.js - JavaScript for Robot Control Interface with HTTP requests
 
 let eventSource;
 let consoleElement;
-let webSocket;
 let scannedNetworks = [];
 
 // Initialize on page load
 window.onload = function() {
     consoleElement = document.getElementById('serialConsole');
     initSSE();
-    initWebSocket();
     loadWiFiStatus();
     setupEventListeners();
 };
-
-// Initialize WebSocket connection
-function initWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = protocol + '//' + window.location.host + ':81';
-
-    console.log('Connecting to WebSocket at:', wsUrl);
-    webSocket = new WebSocket(wsUrl);
-
-    webSocket.onopen = function(event) {
-        console.log('WebSocket connected');
-        updateConnectionStatus('Connected', 'success');
-    };
-
-    webSocket.onmessage = function(event) {
-        console.log('WebSocket message:', event.data);
-        handleWebSocketMessage(event.data);
-    };
-
-    webSocket.onclose = function(event) {
-        console.log('WebSocket disconnected');
-        updateConnectionStatus('Disconnected', 'danger');
-        // Auto-reconnect after 3 seconds
-        setTimeout(initWebSocket, 3000);
-    };
-
-    webSocket.onerror = function(error) {
-        console.error('WebSocket error:', error);
-        updateConnectionStatus('Connection Error', 'warning');
-    };
-}
-
-// Handle incoming WebSocket messages
-function handleWebSocketMessage(message) {
-    try {
-        const data = JSON.parse(message);
-
-        if (data.status === 'received') {
-            console.log('Command acknowledged:', data.command);
-        } else if (data.response === 'pong') {
-            console.log('Ping response received');
-        } else {
-            console.log('Unknown message:', data);
-        }
-    } catch (e) {
-        // Not JSON, treat as plain text
-        console.log('Text message:', message);
-    }
-}
-
-// Update connection status display
-function updateConnectionStatus(status, type) {
-    const statusAlert = document.getElementById('statusAlert');
-    if (statusAlert) {
-        // Add WebSocket status to existing alert
-        const wsStatus = document.createElement('div');
-        wsStatus.id = 'wsStatus';
-        wsStatus.className = 'mt-1';
-        wsStatus.innerHTML = `<small><strong>WebSocket:</strong> <span class="badge bg-${type}">${status}</span></small>`;
-        statusAlert.appendChild(wsStatus);
-    }
-}
 
 // Set up event listeners for buttons and forms
 function setupEventListeners() {
@@ -209,19 +145,25 @@ function sendCommandWithFeedback(command, buttonId) {
 
 // Send robot control command
 function sendCommand(command, value = null) {
-    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        const data = { command };
-        if (value !== null) data.value = value;
+    const data = { command };
+    if (value !== null) data.value = value;
 
-        const message = JSON.stringify(data);
-        console.log('Sending WebSocket command:', message);
-        webSocket.send(message);
+    console.log('Sending HTTP command:', data);
 
-        return Promise.resolve({ success: true });
-    } else {
-        console.error('WebSocket not connected');
-        return Promise.reject(new Error('WebSocket not connected'));
-    }
+    return fetch('/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Command response:', data);
+        return data;
+    })
+    .catch(error => {
+        console.error('Error sending command:', error);
+        throw error;
+    });
 }
 
 // Clear console

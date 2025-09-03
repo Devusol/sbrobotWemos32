@@ -47,6 +47,10 @@ void addToSerialBuffer(String message) {
     sseClient.println("data: " + timestampedMessage);
     sseClient.println();
     sseClient.flush();
+  } else if (sseConnected) {
+    SERIAL_PRINTLN("SSE client disconnected, cleaning up");
+    sseConnected = false;
+    sseClient.stop();
   }
 }
 
@@ -247,42 +251,8 @@ String generateHTML(bool credentialsUpdated, bool scanRequested) {
 
 // Function to handle SSE connections
 void handleSSE() {
-  WiFiClient client = server.available();
-  if (client) {
-    String request = client.readStringUntil('\r');
-
-    if (request.indexOf("GET /events") >= 0) {
-      // SSE connection
-      client.println("HTTP/1.1 200 OK");
-      client.println("Content-Type: text/event-stream");
-      client.println("Cache-Control: no-cache");
-      client.println("Connection: keep-alive");
-      client.println("Access-Control-Allow-Origin: *");
-      client.println();
-
-      sseClient = client;
-      sseConnected = true;
-
-      // Send current buffer contents
-      if (serialBuffer.length() > 0) {
-        sseClient.println("data: " + serialBuffer);
-        sseClient.println();
-        sseClient.flush();
-      }
-
-      return; // Don't close this connection
-    } else if (request.indexOf("GET /clear-console") >= 0) {
-      // Clear console request
-      serialBuffer = "";
-      client.println("HTTP/1.1 200 OK");
-      client.println("Content-Type: text/plain");
-      client.println("Connection: close");
-      client.println();
-      client.println("Console cleared");
-      client.stop();
-      return;
-    }
-  }
+  // SSE handling is now integrated into handleWebServer()
+  // This function is kept for compatibility but does nothing
 }
 
 // Function prototypes
@@ -294,24 +264,79 @@ void handleControl(WiFiClient client, String body);
 
 // Function to handle web server requests
 void handleWebServer() {
-  // Handle SSE first
-  handleSSE();
-
   WiFiClient client = server.available();
   if (client) {
     String request = client.readStringUntil('\r');
     client.readStringUntil('\n'); // consume \n
 
-    // Skip SSE and clear-console requests
-    if (request.indexOf("/events") >= 0 || request.indexOf("/clear-console") >= 0) {
+    // Check if this is an SSE request
+    if (request.indexOf("GET /events") >= 0) {
+      SERIAL_PRINTLN("SSE connection established");
+
+      // Read headers to consume them
+      String line;
+      do {
+        line = client.readStringUntil('\r');
+        client.readStringUntil('\n');
+      } while (line.length() > 0);
+
+      // Send SSE headers
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: text/event-stream");
+      client.println("Cache-Control: no-cache");
+      client.println("Connection: keep-alive");
+      client.println("Access-Control-Allow-Origin: *");
+      client.println();
+      client.flush();
+
+      // Store the client for SSE
+      sseClient = client;
+      sseConnected = true;
+
+      // Send current buffer contents
+      if (serialBuffer.length() > 0) {
+        sseClient.println("data: " + serialBuffer);
+        sseClient.println();
+        sseClient.flush();
+      }
+
+      // Send initial connection message
+      sseClient.println("data: [SSE] Connection established");
+      sseClient.println();
+      sseClient.flush();
+
+      return; // Don't close SSE connection
+    }
+
+    // Check if this is a clear-console request
+    if (request.indexOf("GET /clear-console") >= 0) {
+      // Read headers to consume them
+      String line;
+      do {
+        line = client.readStringUntil('\r');
+        client.readStringUntil('\n');
+      } while (line.length() > 0);
+
+      // Clear console request
+      serialBuffer = "";
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: text/plain");
+      client.println("Connection: close");
+      client.println();
+      client.println("Console cleared");
+      client.stop();
       return;
     }
 
-    // Read headers until blank line
+    // Read and parse headers for regular requests
     String line;
+    int contentLength = 0;
     do {
       line = client.readStringUntil('\r');
       client.readStringUntil('\n');
+      if (line.startsWith("Content-Length: ")) {
+        contentLength = line.substring(16).toInt();
+      }
     } while (line.length() > 0);
 
     String method = request.substring(0, request.indexOf(' '));
@@ -325,6 +350,13 @@ void handleWebServer() {
         serveFile(client, "/script.js", "application/javascript");
       } else if (path == "/status") {
         handleStatus(client);
+      } else if (path == "/favicon.ico") {
+        // Handle favicon request
+        client.println("HTTP/1.1 404 Not Found");
+        client.println("Content-Type: text/plain");
+        client.println("Connection: close");
+        client.println();
+        client.println("Favicon not found");
       } else {
         client.println("HTTP/1.1 404 Not Found");
         client.println("Content-Type: text/plain");
@@ -333,9 +365,21 @@ void handleWebServer() {
         client.println("404 Not Found");
       }
     } else if (method == "POST") {
+      // Read POST body based on Content-Length
       String body = "";
-      while (client.available()) {
-        body += (char)client.read();
+      if (contentLength > 0) {
+        int bytesRead = 0;
+        unsigned long startTime = millis();
+        while (bytesRead < contentLength && millis() - startTime < 5000) { // 5 second timeout
+          if (client.available()) {
+            body += (char)client.read();
+            bytesRead++;
+          }
+          delay(1); // Small delay to prevent busy waiting
+        }
+        if (bytesRead < contentLength) {
+          SERIAL_PRINTLN("Timeout reading POST body");
+        }
       }
 
       if (path == "/save-wifi") {
@@ -354,6 +398,21 @@ void handleWebServer() {
     }
 
     client.stop();
+  }
+
+  // Handle existing SSE connection keep-alive
+  if (sseConnected && sseClient.connected()) {
+    // Send keep-alive every few seconds
+    static unsigned long lastKeepAlive = 0;
+    if (millis() - lastKeepAlive > 30000) { // 30 seconds
+      sseClient.println(": keep-alive");
+      sseClient.println();
+      sseClient.flush();
+      lastKeepAlive = millis();
+    }
+  } else if (sseConnected) {
+    SERIAL_PRINTLN("SSE client disconnected");
+    sseConnected = false;
   }
 }
 

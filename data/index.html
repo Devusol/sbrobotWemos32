@@ -5,22 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robot Control Interface</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        #serialConsole {
-            height: 300px;
-            overflow-y: auto;
-            background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .control-panel {
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body class="bg-light">
     <div class="container mt-5">
@@ -57,15 +41,27 @@
                         <!-- Robot Control Section -->
                         <h4>Robot Control</h4>
                         <div class="control-panel">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <button id="forwardBtn" class="btn btn-success btn-lg mb-2">Forward</button>
-                                    <button id="stopBtn" class="btn btn-danger btn-lg mb-2">Stop</button>
-                                    <button id="backwardBtn" class="btn btn-warning btn-lg">Backward</button>
+                            <div class="mb-2">
+                                <div class="ratio ratio-1x1" style="max-width:120px; margin:0 auto;">
+                                    <button id="forwardBtn" class="btn btn-success w-100 h-100">Forward</button>
                                 </div>
-                                <div class="col-md-6">
-                                    <button id="leftBtn" class="btn btn-info btn-lg mb-2">Turn Left</button>
-                                    <button id="rightBtn" class="btn btn-info btn-lg">Turn Right</button>
+                            </div>
+
+                            <div class="control-row">
+                                <div class="ratio ratio-1x1" style="max-width:80px;">
+                                    <button id="leftBtn" class="btn btn-info w-100 h-100">◀</button>
+                                </div>
+                                <div class="ratio ratio-1x1" style="max-width:140px;">
+                                    <button id="stopBtn" class="btn btn-danger w-100 h-100">Stop</button>
+                                </div>
+                                <div class="ratio ratio-1x1" style="max-width:80px;">
+                                    <button id="rightBtn" class="btn btn-info w-100 h-100">▶</button>
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <div class="ratio ratio-1x1" style="max-width:120px; margin:0 auto;">
+                                    <button id="backwardBtn" class="btn btn-warning w-100 h-100">Backward</button>
                                 </div>
                             </div>
                             <div class="mt-3">

@@ -249,10 +249,31 @@ String generateHTML(bool credentialsUpdated, bool scanRequested) {
   return html;
 }
 
-// Function to handle SSE connections
-void handleSSE() {
-  // SSE handling is now integrated into handleWebServer()
-  // This function is kept for compatibility but does nothing
+// Request handler enum for cleaner code organization
+enum RequestType {
+  REQ_ROOT,
+  REQ_SCRIPT,
+  REQ_STATUS,
+  REQ_SCAN_NETWORKS,
+  REQ_SAVE_WIFI,
+  REQ_CONTROL,
+  REQ_FAVICON,
+  REQ_UNKNOWN
+};
+
+// Helper function to determine request type
+RequestType getRequestType(String path, String method) {
+  if (method == "GET") {
+    if (path == "/" || path == "/index.html") return REQ_ROOT;
+    if (path == "/script.js") return REQ_SCRIPT;
+    if (path == "/status") return REQ_STATUS;
+    if (path == "/scan-networks") return REQ_SCAN_NETWORKS;
+    if (path == "/favicon.ico") return REQ_FAVICON;
+  } else if (method == "POST") {
+    if (path == "/save-wifi") return REQ_SAVE_WIFI;
+    if (path == "/control") return REQ_CONTROL;
+  }
+  return REQ_UNKNOWN;
 }
 
 // Function prototypes
@@ -342,27 +363,38 @@ void handleWebServer() {
     String method = request.substring(0, request.indexOf(' '));
     String path = request.substring(request.indexOf(' ') + 1, request.indexOf(' ', request.indexOf(' ') + 1));
 
+    // Determine request type
+    RequestType reqType = getRequestType(path, method);
+
+    // Handle GET requests
     if (method == "GET") {
-      SERIAL_PRINTLN("GET request for: " + path);
-      if (path == "/" || path == "/index.html") {
-        serveFile(client, "/index.html", "text/html");
-      } else if (path == "/script.js") {
-        serveFile(client, "/script.js", "application/javascript");
-      } else if (path == "/status") {
-        handleStatus(client);
-      } else if (path == "/favicon.ico") {
-        // Handle favicon request
-        client.println("HTTP/1.1 404 Not Found");
-        client.println("Content-Type: text/plain");
-        client.println("Connection: close");
-        client.println();
-        client.println("Favicon not found");
-      } else {
-        client.println("HTTP/1.1 404 Not Found");
-        client.println("Content-Type: text/plain");
-        client.println("Connection: close");
-        client.println();
-        client.println("404 Not Found");
+      switch (reqType) {
+        case REQ_ROOT:
+          serveFile(client, "/index.html", "text/html");
+          break;
+        case REQ_SCRIPT:
+          serveFile(client, "/script.js", "application/javascript");
+          break;
+        case REQ_STATUS:
+          handleStatus(client);
+          break;
+        case REQ_SCAN_NETWORKS:
+          handleScanNetworks(client);
+          break;
+        case REQ_FAVICON:
+          client.println("HTTP/1.1 404 Not Found");
+          client.println("Content-Type: text/plain");
+          client.println("Connection: close");
+          client.println();
+          client.println("Favicon not found");
+          break;
+        default:
+          client.println("HTTP/1.1 404 Not Found");
+          client.println("Content-Type: text/plain");
+          client.println("Connection: close");
+          client.println();
+          client.println("404 Not Found");
+          break;
       }
     } else if (method == "POST") {
       // Read POST body based on Content-Length
@@ -382,18 +414,20 @@ void handleWebServer() {
         }
       }
 
-      if (path == "/save-wifi") {
-        handleSaveWiFi(client, body);
-      } else if (path == "/scan-networks") {
-        handleScanNetworks(client);
-      } else if (path == "/control") {
-        handleControl(client, body);
-      } else {
-        client.println("HTTP/1.1 404 Not Found");
-        client.println("Content-Type: text/plain");
-        client.println("Connection: close");
-        client.println();
-        client.println("404 Not Found");
+      switch (reqType) {
+        case REQ_SAVE_WIFI:
+          handleSaveWiFi(client, body);
+          break;
+        case REQ_CONTROL:
+          handleControl(client, body);
+          break;
+        default:
+          client.println("HTTP/1.1 404 Not Found");
+          client.println("Content-Type: text/plain");
+          client.println("Connection: close");
+          client.println();
+          client.println("404 Not Found");
+          break;
       }
     }
 

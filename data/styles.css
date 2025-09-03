@@ -1,0 +1,30 @@
+#serialConsole {
+    height: 300px;
+    overflow-y: auto;
+    background-color: #000;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.control-panel {
+    margin-top: 20px;
+}
+
+/* Small helpers: keep button content centered when using Bootstrap ratio */
+.control-panel .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.control-panel .control-row {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}

@@ -1,9 +1,14 @@
 
 #include <Arduino.h>
 #include "wifi/wifi_manager.h"
+#include "control/input_controller.h"
 
 void setup() {
   Serial.begin(115200);
+
+  // Initialize the robot controller
+  initController();
+
   initWiFi();
 }
 

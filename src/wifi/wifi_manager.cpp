@@ -12,6 +12,13 @@ Preferences preferences;
 WiFiServer server(80);
 
 void initWiFi() {
+  // Initialize LittleFS
+  if (!LittleFS.begin(true)) {
+    SERIAL_PRINTLN("LittleFS Mount Failed");
+    return;
+  }
+  SERIAL_PRINTLN("LittleFS mounted successfully");
+
   preferences.begin("wifi", false);
   preferences.getString("ssid", ssid, sizeof(ssid));
   preferences.getString("password", password, sizeof(password));
@@ -31,7 +38,9 @@ void initWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     SERIAL_PRINTLN("\nConnected to WiFi!");
     SERIAL_PRINT("IP Address: ");
-    SERIAL_PRINTLN_STR(WiFi.localIP());
+    SERIAL_PRINTLN(WiFi.localIP().toString());
+    server.begin();  // Start HTTP server in STA mode
+    SERIAL_PRINTLN("HTTP server started on port 80");
   } else {
     SERIAL_PRINTLN("\nFailed to connect, switching to AP mode.");
     switchToAPMode();
@@ -42,9 +51,14 @@ void switchToAPMode() {
   SERIAL_PRINTLN("Switching to AP mode...");
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ap_ssid, ap_password);
+  IPAddress apIP = WiFi.softAPIP();
   SERIAL_PRINT("AP IP Address: ");
-  SERIAL_PRINTLN_STR(WiFi.softAPIP());
+  SERIAL_PRINTLN(apIP.toString());
   server.begin();
+  SERIAL_PRINTLN("HTTP server started on port 80");
+  
+  // Add some debugging for AP mode
+  SERIAL_PRINTLN("AP mode initialized. Available for connections.");
 }
 
 void onWiFiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {

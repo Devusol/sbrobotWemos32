@@ -1,4 +1,5 @@
 #include "oled.h"
+#include "../gyro/gyro.h"
 #include <Wire.h>
 #include <WiFi.h>
 
@@ -74,5 +75,75 @@ void OLED_Display::displayText(const String& text, int x, int y, int size) {
 }
 
 void OLED_Display::updateDisplay() {
+    display.display();
+}
+
+void OLED_Display::displayGyroData(const GyroData& data) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.println("Gyroscope Data:");
+    display.println("");
+    display.print("X: ");
+    display.print(data.x, 2);
+    display.println(" deg/s");
+    display.print("Y: ");
+    display.print(data.y, 2);
+    display.println(" deg/s");
+    display.print("Z: ");
+    display.print(data.z, 2);
+    display.println(" deg/s");
+    display.display();
+}
+
+void OLED_Display::displayAccelData(const AccelData& data) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.println("Accelerometer Data:");
+    display.println("");
+    display.print("X: ");
+    display.print(data.x, 2);
+    display.println(" g");
+    display.print("Y: ");
+    display.print(data.y, 2);
+    display.println(" g");
+    display.print("Z: ");
+    display.print(data.z, 2);
+    display.println(" g");
+    display.display();
+}
+
+void OLED_Display::displaySensorData(const GyroData& gyro, const AccelData& accel) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    
+    // Display gyroscope data at the top
+    display.println("Gyroscope:");
+    display.print("X: ");
+    display.print(gyro.x, 2);
+    display.println(" deg/s");
+    display.print("Y: ");
+    display.print(gyro.y, 2);
+    display.println(" deg/s");
+    display.print("Z: ");
+    display.print(gyro.z, 2);
+    display.println(" deg/s");
+    
+    display.println(""); // Add some space
+    
+    // Display accelerometer data below
+    display.println("Accelerometer:");
+    display.print("X: ");
+    display.print(accel.x, 2);
+    display.println(" g");
+    display.print("Y: ");
+    display.print(accel.y, 2);
+    display.println(" g");
+    display.print("Z: ");
+    display.print(accel.z, 2);
+    display.println(" g");
+    
     display.display();
 }

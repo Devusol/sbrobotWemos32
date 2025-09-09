@@ -38,30 +38,11 @@ void loop()
   GyroData gyro = readGyro();
   AccelData accel = readAccel();
   // Serial.println("Gyro: X=-0.12, Y=0.05, Z=0.98");
-  Serial.printf("Gyro: X=%.2f, Y=%.2f, Z=%.2f\n", gyro.x, gyro.y, gyro.z);
+  // Serial.printf("Gyro: X=%.2f, Y=%.2f, Z=%.2f\n", gyro.x, gyro.y, gyro.z);
   // Serial.printf("Accel: X=%.2f, Y=%.2f, Z=%.2f\n", accel.x, accel.y, accel.z);
 
-  // Display gyro and accelerometer data on OLED
-  oled.clearDisplay();
-  oled.displayText("Gyroscope:", 0, 0, 1);
-  char gyroStr[30];
-  sprintf(gyroStr, "X: %.2f", gyro.x);
-  oled.displayText(gyroStr, 0, 10, 1);
-  sprintf(gyroStr, "Y: %.2f", gyro.y);
-  oled.displayText(gyroStr, 0, 20, 1);
-  sprintf(gyroStr, "Z: %.2f", gyro.z);
-  oled.displayText(gyroStr, 0, 30, 1);
-
-  oled.displayText("Accelerometer:", 0, 40, 1);
-  char accelStr[30];
-  sprintf(accelStr, "X: %.2f", accel.x);
-  oled.displayText(accelStr, 0, 50, 1);
-  sprintf(accelStr, "Y: %.2f", accel.y);
-  oled.displayText(accelStr, 60, 50, 1);
-  sprintf(accelStr, "Z: %.2f", accel.z);
-  oled.displayText(accelStr, 0, 60, 1);
-
-  oled.updateDisplay();
+  // Display gyro and accelerometer data on OLED using combined function
+  oled.displaySensorData(gyro, accel);
 
   delay(100);
 }

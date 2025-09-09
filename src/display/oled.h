@@ -24,6 +24,9 @@ public:
     void displayWiFiStatus(bool isConnected, const String& ipAddress = "", bool isAPMode = false);
     void displayText(const String& text, int x = 0, int y = 0, int size = 1);
     void updateDisplay();
+    void displayGyroData(const GyroData& data);
+    void displayAccelData(const AccelData& data);
+    void displaySensorData(const GyroData& gyro, const AccelData& accel);
 };
 
 #endif

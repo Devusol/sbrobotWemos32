@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
+#include "../gyro/gyro.h"
 
 // OLED display dimensions
 #define SCREEN_WIDTH 128

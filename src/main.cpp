@@ -26,15 +26,15 @@ void setup()
   // Initialize the robot controller
   initController();
   initGyro();
+  setSpeed(60); // Set initial speed to 60%
 
-  initWiFi();
+  // initWiFi();
 }
 
 void loop()
 {
-  handleWebServer();
+  // handleWebServer();
   // Main code for the robot's balancing loop
-
   GyroData gyro = readGyro();
   AccelData accel = readAccel();
   // Serial.println("Gyro: X=-0.12, Y=0.05, Z=0.98");
@@ -44,5 +44,22 @@ void loop()
   // Display gyro and accelerometer data on OLED using combined function
   oled.displaySensorData(gyro, accel);
 
-  delay(100);
+  moveBackward();
+
+  delay(1000);
+  stopMovement();
+  delay(1000);
+  moveForward();
+
+  delay(1000);
+  stopMovement();
+  delay(1000);
+  turnLeft();
+  delay(1000);
+  stopMovement();
+  delay(1000);
+  turnRight();
+  delay(1000);
+  stopMovement();
+  delay(1000);
 }

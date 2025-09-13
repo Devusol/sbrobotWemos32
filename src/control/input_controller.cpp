@@ -232,3 +232,26 @@ void setMotorSpeeds(int leftSpeed, int rightSpeed)
 
     Serial.printf("Motor speeds set: Left=%d, Right=%d\n", leftSpeed, rightSpeed);
 }
+
+
+void motorTest()
+{
+    // Test sequence: forward, backward, left, right, stop
+    setSpeed(50);
+    moveForward();
+    delay(2000);
+    stopMovement();
+    delay(1000);
+    moveBackward();
+    delay(2000);
+    stopMovement();
+    delay(1000);
+    turnLeft();
+    delay(2000);
+    stopMovement();
+    delay(1000);
+    turnRight();
+    delay(2000);
+    stopMovement();
+    delay(3000);
+}   

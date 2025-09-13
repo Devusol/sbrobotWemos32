@@ -50,9 +50,10 @@ void loop()
 
   // Balance the robot
   balanceRobot(angle);
+  // motorTest();
 
   // Display gyro and accelerometer data on OLED using combined function
-  oled.displaySensorData(gyro, accel);
+  // oled.displaySensorData(gyro, accel);
 
   // Small delay for stability
   delay(10);

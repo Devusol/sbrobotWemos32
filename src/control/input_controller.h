@@ -8,6 +8,7 @@ void initController();
 void setSpeed(int speed);  // 0-100
 void moveForward();
 void moveBackward();
+void motorTest();
 void turnLeft();
 void turnRight();
 void stopMovement();

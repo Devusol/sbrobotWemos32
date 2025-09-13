@@ -24,10 +24,12 @@ float calculateAngle(AccelData accel, GyroData gyro) {
     lastAngleTime = currentTime;
 
     // Calculate angle from accelerometer (pitch angle)
-    float accelAngle = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z)) * 180.0 / PI;
+    // Orientation: X down, Y right, Z forward
+    // Pitch angle around Y-axis: atan2(Z, X)
+    float accelAngle = atan2(accel.z, accel.x) * 180.0 / PI;
 
     // Integrate gyro rate to get angle change
-    float gyroRate = gyro.y;  // Y-axis for pitch
+    float gyroRate = gyro.y;  // Y-axis for pitch rate
     float gyroAngleChange = gyroRate * dt;
 
     // Complementary filter
@@ -65,13 +67,13 @@ float updatePID(PIDController &pid, float error) {
 
 // Balance the robot
 void balanceRobot(float angle) {
-    float error = TARGET_ANGLE - angle;
+    float error = angle - TARGET_ANGLE;  // Positive when tilted forward
 
     // Update PID
     float pidOutput = updatePID(balancePID, error);
 
     // Convert PID output to motor speeds
-    // Positive pidOutput means lean forward, so increase forward speed
+    // Positive pidOutput means tilted forward, increase forward speed
     int baseSpeed = 50;  // Base speed for balancing
     int leftSpeed = baseSpeed + pidOutput;
     int rightSpeed = baseSpeed + pidOutput;

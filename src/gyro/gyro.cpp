@@ -63,10 +63,10 @@ void calibrateAccel(AccelOffsets &offsets) {
         delay(10);
     }
 
-    // For accel, when flat, Z should be 1g (16384 raw), X and Y 0
-    offsets.x = sumX / numSamples;
+    // For accel, when flat (X down, Z forward), X should be 1g, Z should be 0
+    offsets.x = sumX / numSamples - 16384;  // Subtract 1g from X
     offsets.y = sumY / numSamples;
-    offsets.z = sumZ / numSamples - 16384;  // Subtract 1g from Z
+    offsets.z = sumZ / numSamples;
 
     Serial.printf("Accel offsets: X=%.2f, Y=%.2f, Z=%.2f\n", offsets.x, offsets.y, offsets.z);
 }

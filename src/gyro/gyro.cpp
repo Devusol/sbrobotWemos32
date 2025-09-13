@@ -116,17 +116,21 @@ Orientation readOrientation(const GyroData &gyro, const AccelData &accel) {
     float dt = (currentTime - lastTime) / 1000.0;  // Convert to seconds
     lastTime = currentTime;
 
-    // Integrate gyro data
-    pitch += gyro.x * dt;
-    roll += gyro.y * dt;
+    // Integrate gyro data (adjusted for X-down, Y-right, Z-forward orientation)
+    // Pitch is rotation around Y-axis, roll around X-axis
+    pitch += gyro.y * dt;
+    roll += gyro.x * dt;
     yaw += gyro.z * dt;
 
-    // Calculate accelerometer angles
-    float accelPitch = atan2(accel.y, sqrt(accel.x * accel.x + accel.z * accel.z)) * 180.0 / PI;
-    float accelRoll = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z)) * 180.0 / PI;
+    // Calculate accelerometer angles for this orientation
+    // Gravity along +X, so up is -X
+    // Pitch (around Y): atan2(Z, X)
+    // Roll (around X): atan2(Y, X) - but since gravity along X, roll accel measurement is limited
+    float accelPitch = atan2(accel.z, accel.x) * 180.0 / PI;
+    float accelRoll = atan2(accel.y, accel.x) * 180.0 / PI;
 
     // Complementary filter to combine gyro and accel
-    const float alpha = 0.98;
+    const float alpha = 0.95;  // Reduced for faster response
     pitch = alpha * pitch + (1 - alpha) * accelPitch;
     roll = alpha * roll + (1 - alpha) * accelRoll;
 

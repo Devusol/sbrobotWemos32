@@ -60,8 +60,15 @@ void loop()
   
   // Display gyro and accelerometer data on OLED using combined function
   // oled.displaySensorData(gyro, accel);
-  Serial.printf("Orientation - Pitch: %.2f, Roll: %.2f, Yaw: %.2f\n", orientation.pitch, orientation.roll, orientation.yaw);
+  
+  // Print orientation less frequently to reduce serial lag
+  // static int printCounter = 0;
+  // printCounter++;
+  // if (printCounter >= 20) {  // Print every 20 loops (~100ms at 5ms loop time)
+  //   Serial.printf("Orientation - Pitch: %.2f, Roll: %.2f, Yaw: %.2f\n", orientation.pitch, orientation.roll, orientation.yaw);
+  //   printCounter = 0;
+  // }
 
   // Small delay for stability
-  delay(10);
+  delay(5);  // Reduced from 10ms for faster response
 }

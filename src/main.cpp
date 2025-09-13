@@ -3,8 +3,12 @@
 #include "control/input_controller.h"
 #include "gyro/gyro.h"
 #include "display/oled.h"
+#include "self_balancing/balance.h"
 
 OLED_Display oled;
+GyroOffsets gyroOffsets;
+AccelOffsets accelOffsets;
+
 void setup()
 {
   Serial.begin(115200);
@@ -26,6 +30,9 @@ void setup()
   // Initialize the robot controller
   initController();
   initGyro();
+  calibrateGyro(gyroOffsets);
+  calibrateAccel(accelOffsets);
+  initBalance();
   setSpeed(60); // Set initial speed to 60%
 
   // initWiFi();
@@ -35,31 +42,18 @@ void loop()
 {
   // handleWebServer();
   // Main code for the robot's balancing loop
-  GyroData gyro = readGyro();
-  AccelData accel = readAccel();
-  // Serial.println("Gyro: X=-0.12, Y=0.05, Z=0.98");
-  // Serial.printf("Gyro: X=%.2f, Y=%.2f, Z=%.2f\n", gyro.x, gyro.y, gyro.z);
-  // Serial.printf("Accel: X=%.2f, Y=%.2f, Z=%.2f\n", accel.x, accel.y, accel.z);
+  GyroData gyro = readGyro(gyroOffsets);
+  AccelData accel = readAccel(accelOffsets);
+
+  // Calculate current angle
+  float angle = calculateAngle(accel, gyro);
+
+  // Balance the robot
+  balanceRobot(angle);
 
   // Display gyro and accelerometer data on OLED using combined function
   oled.displaySensorData(gyro, accel);
 
-  moveBackward();
-
-  delay(1000);
-  stopMovement();
-  delay(1000);
-  moveForward();
-
-  delay(1000);
-  stopMovement();
-  delay(1000);
-  turnLeft();
-  delay(1000);
-  stopMovement();
-  delay(1000);
-  turnRight();
-  delay(1000);
-  stopMovement();
-  delay(1000);
+  // Small delay for stability
+  delay(10);
 }

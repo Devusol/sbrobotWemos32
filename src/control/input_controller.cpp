@@ -193,3 +193,42 @@ void stopMovement()
     ledcWrite(LEDC_CHANNEL_LEFT, 0);
     ledcWrite(LEDC_CHANNEL_RIGHT, 0);
 }
+
+void setMotorSpeeds(int leftSpeed, int rightSpeed)
+{
+    // Constrain speeds to -100 to 100
+    leftSpeed = constrain(leftSpeed, -100, 100);
+    rightSpeed = constrain(rightSpeed, -100, 100);
+
+    // Convert to PWM values (0-255)
+    int leftPWM = map(abs(leftSpeed), 0, 100, 0, 255);
+    int rightPWM = map(abs(rightSpeed), 0, 100, 0, 255);
+
+    // Set directions and speeds for left motor
+    if (leftSpeed > 0) {
+        digitalWrite(MOTOR_LEFT_FWD, HIGH);
+        digitalWrite(MOTOR_LEFT_REV, LOW);
+    } else if (leftSpeed < 0) {
+        digitalWrite(MOTOR_LEFT_FWD, LOW);
+        digitalWrite(MOTOR_LEFT_REV, HIGH);
+    } else {
+        digitalWrite(MOTOR_LEFT_FWD, LOW);
+        digitalWrite(MOTOR_LEFT_REV, LOW);
+    }
+    ledcWrite(LEDC_CHANNEL_LEFT, leftPWM);
+
+    // Set directions and speeds for right motor
+    if (rightSpeed > 0) {
+        digitalWrite(MOTOR_RIGHT_FWD, HIGH);
+        digitalWrite(MOTOR_RIGHT_REV, LOW);
+    } else if (rightSpeed < 0) {
+        digitalWrite(MOTOR_RIGHT_FWD, LOW);
+        digitalWrite(MOTOR_RIGHT_REV, HIGH);
+    } else {
+        digitalWrite(MOTOR_RIGHT_FWD, LOW);
+        digitalWrite(MOTOR_RIGHT_REV, LOW);
+    }
+    ledcWrite(LEDC_CHANNEL_RIGHT, rightPWM);
+
+    Serial.printf("Motor speeds set: Left=%d, Right=%d\n", leftSpeed, rightSpeed);
+}

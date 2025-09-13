@@ -21,9 +21,20 @@ struct AccelData {
     float z;
 };
 
+// Offset structures
+struct GyroOffsets {
+    float x, y, z;
+};
+
+struct AccelOffsets {
+    float x, y, z;
+};
+
 // Function declarations
 void initGyro();
-GyroData readGyro();
-AccelData readAccel();
+void calibrateGyro(GyroOffsets &offsets);
+void calibrateAccel(AccelOffsets &offsets);
+GyroData readGyro(const GyroOffsets &offsets);
+AccelData readAccel(const AccelOffsets &offsets);
 
 #endif

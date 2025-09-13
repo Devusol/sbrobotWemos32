@@ -11,6 +11,7 @@ void moveBackward();
 void turnLeft();
 void turnRight();
 void stopMovement();
+void setMotorSpeeds(int leftSpeed, int rightSpeed);  // -100 to 100
 
 // HTTP command handling
 void handleRobotCommand(String command, String value);

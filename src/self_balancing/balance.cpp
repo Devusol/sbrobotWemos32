@@ -2,7 +2,7 @@
 #include "control/input_controller.h"
 
 // PID controller for balancing
-PIDController balancePID = {5.0, 0.0, 0.5, 0.0, 0.0, 0}; // Increased Kp, adjusted Kd
+PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0}; // Increased Kp, adjusted Kd
 
 // Complementary filter variables
 float currentAngle = 0.0;
@@ -78,40 +78,51 @@ void balanceRobot(float angle)
 
     // Convert PID output to motor speeds
     // Base speed provides steady-state balancing torque
-    int baseSpeed = 50; // Base speed for balancing
-    int leftSpeed = baseSpeed + pidOutput;
-    int rightSpeed = baseSpeed + pidOutput;
+    int leftSpeed = balancePID.baseSpeed + pidOutput;
+    int rightSpeed = balancePID.baseSpeed + pidOutput;
 
     // Set motor speeds
     setMotorSpeeds(leftSpeed, rightSpeed);
 }
 
-void adjustPIDGains(String wsedrf)
+void adjustPIDGains(char qawsedrf)
 {
-    float kp = 0, ki = 0, kd = 0;
-    if (wsedrf == "w")
+    Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3)+", BaseSpeed=" + String(balancePID.baseSpeed));
+
+    float kp = balancePID.kp, ki = balancePID.ki, kd = balancePID.kd, baseSpeed = balancePID.baseSpeed;
+    if (qawsedrf == 'w')
     {
         kp += 0.1; // Increase Kp
     }
-    else if (wsedrf == "s")
+    else if (qawsedrf == 's')
     {
         kp -= 0.1; // Decrease Kp
     }
-    else if (wsedrf == "e")
+    else if (qawsedrf == 'e')
     {
         ki += 0.01; // Increase Ki
     }
-    else if (wsedrf == "d")
+    else if (qawsedrf == 'd')
     {
         ki -= 0.01; // Decrease Ki
     }
-    else if (wsedrf == "r")
+    else if (qawsedrf == 'r')
     {
         kd += 0.01; // Increase Kd
     }
-    else if (wsedrf == "f")
+    else if (qawsedrf == 'f')
     {
         kd -= 0.01; // Decrease Kd
+    }
+    else if (qawsedrf == 'q')
+    {
+        baseSpeed += 5; // Increase base speed
+    }
+    else if (qawsedrf == 'a')
+    {
+        baseSpeed -= 5; // Decrease base speed
+        if (baseSpeed < 0)
+            baseSpeed = 0; // Prevent negative speed
     }
     else
     {
@@ -122,4 +133,7 @@ void adjustPIDGains(String wsedrf)
     balancePID.kp = kp;
     balancePID.ki = ki;
     balancePID.kd = kd;
+    balancePID.baseSpeed = baseSpeed;
+
+    Serial.println("Adjusted PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
 }

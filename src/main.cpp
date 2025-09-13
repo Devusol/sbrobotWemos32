@@ -49,18 +49,31 @@ void loop()
   float angle = calculateAngle(accel, gyro);
 
   // Non-blocking serial input - process each character immediately
-  while (Serial.available()) {
+  while (Serial.available())
+  {
     char c = Serial.read();
-    adjustGyroOffsets(gyroOffsets, gyro, String(c).c_str());
+    if (c == 'c')
+    {
+      stopMovement();
+      calibrateGyro(gyroOffsets);
+      calibrateAccel(accelOffsets);
+      Serial.println("Recalibrated gyro and accelerometer.");
+    }
+    else
+    {
+      adjustPIDGains(c);
+    }
   }
 
   // Balance the robot
   balanceRobot(angle);
-  // motorTest();
-  
+
+  // Handle web server requests
+  // handleWebServer();
+
   // Display gyro and accelerometer data on OLED using combined function
   // oled.displaySensorData(gyro, accel);
-  
+
   // Print orientation less frequently to reduce serial lag
   // static int printCounter = 0;
   // printCounter++;
@@ -70,5 +83,5 @@ void loop()
   // }
 
   // Small delay for stability
-  delay(5);  // Reduced from 10ms for faster response
+  delay(5); // Reduced from 10ms for faster response
 }

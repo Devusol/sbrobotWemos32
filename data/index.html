@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot Control Interface</title>
+    <title>Self-Balancing Robot Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .control-panel {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .pid-control {
+            margin-bottom: 15px;
+        }
+        .pid-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <div class="container mt-5">
@@ -12,79 +27,256 @@
             <div class="col-md-10">
                 <div class="card">
                     <div class="card-header">
-                        <h1 class="card-title">Robot Control Interface</h1>
-                        <div id="statusAlert"></div>
+                        <h1 class="card-title">Self-Balancing Robot Control</h1>
                     </div>
                     <div class="card-body">
-                        <!-- WiFi Configuration Section -->
-                        <h4>WiFi Configuration</h4>
-                        <form id="wifiForm">
-                            <div class="mb-3">
-                                <label for="ssid" class="form-label">SSID</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="ssid" name="ssid" required>
-                                    <button type="button" id="scanBtn" class="btn btn-outline-secondary">Scan Networks</button>
-                                </div>
-                                <select class="form-select mt-2" id="networkSelect">
-                                    <option value="">Select from scanned networks...</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save WiFi</button>
-                        </form>
 
-                        <hr>
-
-                        <!-- Robot Control Section -->
-                        <h4>Robot Control</h4>
+                        <!-- Status Display -->
                         <div class="control-panel">
-                            <div class="mb-2">
-                                <div class="ratio ratio-1x1" style="max-width:120px; margin:0 auto;">
-                                    <button id="forwardBtn" class="btn btn-success w-100 h-100">Forward</button>
-                                </div>
-                            </div>
-
-                            <div class="control-row">
-                                <div class="ratio ratio-1x1" style="max-width:80px;">
-                                    <button id="leftBtn" class="btn btn-info w-100 h-100">◀</button>
-                                </div>
-                                <div class="ratio ratio-1x1" style="max-width:140px;">
-                                    <button id="stopBtn" class="btn btn-danger w-100 h-100">Stop</button>
-                                </div>
-                                <div class="ratio ratio-1x1" style="max-width:80px;">
-                                    <button id="rightBtn" class="btn btn-info w-100 h-100">▶</button>
-                                </div>
-                            </div>
-
-                            <div class="mt-2">
-                                <div class="ratio ratio-1x1" style="max-width:120px; margin:0 auto;">
-                                    <button id="backwardBtn" class="btn btn-warning w-100 h-100">Backward</button>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <label for="speedSlider" class="form-label">Speed: <span id="speedValue">50</span>%</label>
-                                <input type="range" class="form-range" id="speedSlider" min="0" max="100" value="50">
+                            <h4>Robot Status</h4>
+                            <div id="statusDisplay" class="alert alert-info">
+                                Loading status...
                             </div>
                         </div>
 
-                        <hr>
-
-                        <!-- Serial Console Section -->
-                        <h4>Serial Console</h4>
-                        <div id="serialConsole"></div>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Console</button>
-                            <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="scrollToBottom()">Scroll to Bottom</button>
+                        <!-- PID Control Panel -->
+                        <div class="control-panel">
+                            <h4>PID Controller Tuning</h4>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="pid-control text-center">
+                                        <label class="form-label">Proportional (Kp)</label>
+                                        <div class="d-flex justify-content-center align-items-center mb-2">
+                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('kp', -0.1)">-</button>
+                                            <span id="kpValue" class="pid-value fs-4 mx-3">0.000</span>
+                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kp', 0.1)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="pid-control text-center">
+                                        <label class="form-label">Integral (Ki)</label>
+                                        <div class="d-flex justify-content-center align-items-center mb-2">
+                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('ki', -0.01)">-</button>
+                                            <span id="kiValue" class="pid-value fs-4 mx-3">0.000</span>
+                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('ki', 0.01)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="pid-control text-center">
+                                        <label class="form-label">Derivative (Kd)</label>
+                                        <div class="d-flex justify-content-center align-items-center mb-2">
+                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('kd', -0.01)">-</button>
+                                            <span id="kdValue" class="pid-value fs-4 mx-3">0.000</span>
+                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kd', 0.01)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button id="updatePID" class="btn btn-primary me-2">Update PID Values</button>
+                                <button id="calibrate" class="btn btn-warning me-2">Calibrate Sensors</button>
+                                <button id="resetPID" class="btn btn-secondary">Reset PID to Defaults</button>
+                            </div>
                         </div>
+
+                        <!-- Robot Control Panel -->
+                        <div class="control-panel">
+                            <h4>Robot Control</h4>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="text-center">
+                                        <div class="mb-3">
+                                            <button id="forward" class="btn btn-success btn-lg me-2">Forward</button>
+                                            <button id="stop" class="btn btn-danger btn-lg">Stop</button>
+                                            <button id="backward" class="btn btn-warning btn-lg ms-2">Backward</button>
+                                        </div>
+                                        <div>
+                                            <button id="left" class="btn btn-info btn-lg me-2">Turn Left</button>
+                                            <button id="right" class="btn btn-info btn-lg">Turn Right</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Serial Console -->
+                        <div class="control-panel">
+                            <h4>Serial Console</h4>
+                            <div id="serialConsole">
+                                Serial console disabled for better performance
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        let statusInterval;
+        let currentPID = { kp: 5.0, ki: 0.0, kd: 0.5 };
+
+        // Initialize the page
+        window.onload = function() {
+            loadPIDValues();
+            setupEventListeners();
+            statusInterval = setInterval(updateStatus, 5000); // Update status every 5 seconds
+        };
+
+        // Load current PID values from the robot
+        function loadPIDValues() {
+            fetch('/get-pid')
+                .then(response => response.json())
+                .then(data => {
+                    currentPID.kp = data.kp;
+                    currentPID.ki = data.ki;
+                    currentPID.kd = data.kd;
+                    updatePIDDisplays();
+                })
+                .catch(error => console.error('Error loading PID values:', error));
+        }
+
+        // Update PID value displays
+        function updatePIDDisplays() {
+            document.getElementById('kpValue').textContent = currentPID.kp.toFixed(3);
+            document.getElementById('kiValue').textContent = currentPID.ki.toFixed(3);
+            document.getElementById('kdValue').textContent = currentPID.kd.toFixed(3);
+        }
+
+        // Adjust PID values with buttons
+        function adjustPID(param, delta) {
+            // Apply limits
+            const limits = {
+                kp: { min: 0, max: 20 },
+                ki: { min: 0, max: 10 },
+                kd: { min: 0, max: 5 }
+            };
+            
+            currentPID[param] += delta;
+            currentPID[param] = Math.max(limits[param].min, Math.min(limits[param].max, currentPID[param]));
+            
+            // Round to appropriate precision
+            const precision = param === 'kp' ? 1 : 2;
+            currentPID[param] = Math.round(currentPID[param] * Math.pow(10, precision)) / Math.pow(10, precision);
+            
+            updatePIDDisplays();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // PID buttons
+            document.getElementById('updatePID').addEventListener('click', updatePID);
+            document.getElementById('calibrate').addEventListener('click', calibrateSensors);
+            document.getElementById('resetPID').addEventListener('click', resetPID);
+
+            // Robot control buttons
+            document.getElementById('forward').addEventListener('click', () => sendCommand('forward'));
+            document.getElementById('backward').addEventListener('click', () => sendCommand('backward'));
+            document.getElementById('left').addEventListener('click', () => sendCommand('left'));
+            document.getElementById('right').addEventListener('click', () => sendCommand('right'));
+            document.getElementById('stop').addEventListener('click', () => sendCommand('stop'));
+        }
+
+        // Update PID values on the robot
+        function updatePID() {
+            const kp = parseFloat(document.getElementById('kpSlider').value);
+            const ki = parseFloat(document.getElementById('kiSlider').value);
+            const kd = parseFloat(document.getElementById('kdSlider').value);
+
+            fetch('/set-pid', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ kp: kp, ki: ki, kd: kd })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('PID values updated successfully!');
+                } else {
+                    alert('Failed to update PID values: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating PID:', error);
+                alert('Error updating PID values');
+            });
+        }
+
+        // Calibrate sensors
+        function calibrateSensors() {
+            if (confirm('Calibration will take about 10 seconds. Keep the robot stationary and level. Continue?')) {
+                document.getElementById('calibrate').disabled = true;
+                document.getElementById('calibrate').textContent = 'Calibrating...';
+                
+                fetch('/calibrate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Calibration completed successfully!');
+                    } else {
+                        alert('Calibration failed: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error calibrating:', error);
+                    alert('Error during calibration');
+                })
+                .finally(() => {
+                    document.getElementById('calibrate').disabled = false;
+                    document.getElementById('calibrate').textContent = 'Calibrate Sensors';
+                });
+            }
+        }
+
+        // Reset PID to default values
+        function resetPID() {
+            currentPID.kp = 5.0;
+            currentPID.ki = 0.0;
+            currentPID.kd = 0.5;
+            updatePIDDisplays();
+            updatePID();
+        }
+
+        // Send robot control commands
+        function sendCommand(command) {
+            fetch('/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command, value: "" })
+            })
+            .catch(error => console.error('Error sending command:', error));
+        }
+
+        // Update status display
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    let statusHtml = "<strong>WiFi Status:</strong> ";
+                    if (data.mode === "AP") {
+                        statusHtml += `Access Point Mode - IP: ${data.ip}`;
+                    } else if (data.connected) {
+                        statusHtml += `Connected to ${data.ssid} - IP: ${data.ip}`;
+                    } else {
+                        statusHtml += "Not Connected";
+                    }
+                    document.getElementById('statusDisplay').innerHTML = statusHtml;
+                })
+                .catch(error => console.error('Error updating status:', error));
+        }
+    </script>
 </body>
 </html>

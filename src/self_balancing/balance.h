@@ -12,6 +12,7 @@ struct PIDController {
     float integral;
     float previousError;
     unsigned long lastTime;
+    int baseSpeed;
 };
 
 // Function declarations
@@ -19,5 +20,9 @@ void initBalance();
 float calculateAngle(AccelData accel, GyroData gyro);
 float updatePID(PIDController &pid, float error);
 void balanceRobot(float angle);
+void adjustPIDGains(char input);
+
+// Global PID controller access
+extern PIDController balancePID;
 
 #endif

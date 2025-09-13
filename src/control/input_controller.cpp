@@ -3,14 +3,17 @@
 // Onboard LED pin for testing (GPIO 2 on most ESP32 boards)
 #define LED_PIN 2
 
+#define MOTOR_RIGHT_PWM 0
+#define MOTOR_RIGHT_FWD 12
+#define MOTOR_RIGHT_REV 32
 
-#define MOTOR_LEFT_REV 12
-#define MOTOR_LEFT_PWM 32
-#define MOTOR_LEFT_FWD 25
-#define MOTOR_RIGHT_PWM 27
+#define MOTOR_LEFT_PWM 4
+#define MOTOR_LEFT_REV 27
+#define MOTOR_LEFT_FWD 33
 
-#define MOTOR_RIGHT_REV 33
-#define MOTOR_RIGHT_FWD 14
+
+
+
 
 
 // LEDC PWM configuration
@@ -24,7 +27,8 @@ const int LEDC_RESOLUTION = 8; // 0-255
 static int currentSpeed = 0;
 
 // Initialize the controller
-void initController() {
+void initController()
+{
     // Setup onboard LED for PWM control
     pinMode(LED_PIN, OUTPUT);
 
@@ -48,42 +52,60 @@ void initController() {
 }
 
 // Handle robot commands (called from HTTP POST handler)
-void handleRobotCommand(String command, String value) {
+void handleRobotCommand(String command, String value)
+{
     Serial.print("Handling robot command: ");
     Serial.print(command);
-    if (value.length() > 0) {
+    if (value.length() > 0)
+    {
         Serial.print(" with value: ");
         Serial.println(value);
-    } else {
+    }
+    else
+    {
         Serial.println();
     }
 
-    if (command == "speed") {
+    if (command == "speed")
+    {
         int speedValue = value.toInt();
         setSpeed(speedValue);
         Serial.println("Speed command processed successfully");
-    } else if (command == "forward") {
+    }
+    else if (command == "forward")
+    {
         moveForward();
         Serial.println("Forward command processed successfully");
-    } else if (command == "backward") {
+    }
+    else if (command == "backward")
+    {
         moveBackward();
         Serial.println("Backward command processed successfully");
-    } else if (command == "left") {
+    }
+    else if (command == "left")
+    {
         turnLeft();
         Serial.println("Left turn command processed successfully");
-    } else if (command == "right") {
+    }
+    else if (command == "right")
+    {
         turnRight();
         Serial.println("Right turn command processed successfully");
-    } else if (command == "stop") {
+    }
+    else if (command == "stop")
+    {
         stopMovement();
         Serial.println("Stop command processed successfully");
-    } else {
+    }
+    else
+    {
         Serial.println("Unknown command: " + command);
     }
 }
 
 // Set speed (0-100) - controls LED brightness for testing
-void setSpeed(int speed) {
+void setSpeed(int speed)
+{
     currentSpeed = constrain(speed, 0, 100);
     int pwmValue = map(currentSpeed, 0, 100, 0, 255);
     ledcWrite(LEDC_CHANNEL_LED, pwmValue);
@@ -95,7 +117,8 @@ void setSpeed(int speed) {
     Serial.println(")");
 }
 
-void moveForward() {
+void moveForward()
+{
     Serial.println("Moving forward at speed: " + String(currentSpeed) + "%");
     int pwmValue = map(currentSpeed, 0, 100, 0, 255);
 
@@ -110,7 +133,8 @@ void moveForward() {
     ledcWrite(LEDC_CHANNEL_RIGHT, pwmValue);
 }
 
-void moveBackward() {
+void moveBackward()
+{
     Serial.println("Moving backward at speed: " + String(currentSpeed) + "%");
     int pwmValue = map(currentSpeed, 0, 100, 0, 255);
 
@@ -125,11 +149,11 @@ void moveBackward() {
     ledcWrite(LEDC_CHANNEL_RIGHT, pwmValue);
 }
 
-void turnLeft() {
+void turnLeft()
+{
     Serial.println("Turning left at speed: " + String(currentSpeed) + "%");
     int pwmValue = map(currentSpeed, 0, 100, 0, 255);
-
-    // Left motor backward, right motor forward
+    // Right motor forward, left motor backward
     digitalWrite(MOTOR_LEFT_FWD, LOW);
     digitalWrite(MOTOR_LEFT_REV, HIGH);
     digitalWrite(MOTOR_RIGHT_FWD, HIGH);
@@ -140,7 +164,8 @@ void turnLeft() {
     ledcWrite(LEDC_CHANNEL_RIGHT, pwmValue);
 }
 
-void turnRight() {
+void turnRight()
+{
     Serial.println("Turning right at speed: " + String(currentSpeed) + "%");
     int pwmValue = map(currentSpeed, 0, 100, 0, 255);
 
@@ -155,7 +180,8 @@ void turnRight() {
     ledcWrite(LEDC_CHANNEL_RIGHT, pwmValue);
 }
 
-void stopMovement() {
+void stopMovement()
+{
     Serial.println("Stopping movement");
 
     // Stop motors
@@ -167,4 +193,3 @@ void stopMovement() {
     ledcWrite(LEDC_CHANNEL_LEFT, 0);
     ledcWrite(LEDC_CHANNEL_RIGHT, 0);
 }
-

@@ -11,11 +11,6 @@
 #define MOTOR_LEFT_REV 27
 #define MOTOR_LEFT_FWD 33
 
-
-
-
-
-
 // LEDC PWM configuration
 const int LEDC_CHANNEL_LED = 0;
 const int LEDC_CHANNEL_LEFT = 1;
@@ -205,26 +200,36 @@ void setMotorSpeeds(int leftSpeed, int rightSpeed)
     int rightPWM = map(abs(rightSpeed), 0, 100, 0, 255);
 
     // Set directions and speeds for left motor
-    if (leftSpeed > 0) {
+    if (leftSpeed > 0)
+    {
         digitalWrite(MOTOR_LEFT_FWD, HIGH);
         digitalWrite(MOTOR_LEFT_REV, LOW);
-    } else if (leftSpeed < 0) {
+    }
+    else if (leftSpeed < 0)
+    {
         digitalWrite(MOTOR_LEFT_FWD, LOW);
         digitalWrite(MOTOR_LEFT_REV, HIGH);
-    } else {
+    }
+    else
+    {
         digitalWrite(MOTOR_LEFT_FWD, LOW);
         digitalWrite(MOTOR_LEFT_REV, LOW);
     }
     ledcWrite(LEDC_CHANNEL_LEFT, leftPWM);
 
     // Set directions and speeds for right motor
-    if (rightSpeed > 0) {
+    if (rightSpeed > 0)
+    {
         digitalWrite(MOTOR_RIGHT_FWD, HIGH);
         digitalWrite(MOTOR_RIGHT_REV, LOW);
-    } else if (rightSpeed < 0) {
+    }
+    else if (rightSpeed < 0)
+    {
         digitalWrite(MOTOR_RIGHT_FWD, LOW);
         digitalWrite(MOTOR_RIGHT_REV, HIGH);
-    } else {
+    }
+    else
+    {
         digitalWrite(MOTOR_RIGHT_FWD, LOW);
         digitalWrite(MOTOR_RIGHT_REV, LOW);
     }
@@ -232,7 +237,6 @@ void setMotorSpeeds(int leftSpeed, int rightSpeed)
 
     Serial.printf("Motor speeds set: Left=%d, Right=%d\n", leftSpeed, rightSpeed);
 }
-
 
 void motorTest()
 {
@@ -254,4 +258,4 @@ void motorTest()
     delay(2000);
     stopMovement();
     delay(3000);
-}   
+}

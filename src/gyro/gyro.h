@@ -30,11 +30,19 @@ struct AccelOffsets {
     float x, y, z;
 };
 
+struct Orientation {
+    float pitch; // Rotation around X-axis
+    float roll;  // Rotation around Y-axis
+    float yaw;   // Rotation around Z-axis
+};
+
 // Function declarations
 void initGyro();
 void calibrateGyro(GyroOffsets &offsets);
 void calibrateAccel(AccelOffsets &offsets);
 GyroData readGyro(const GyroOffsets &offsets);
 AccelData readAccel(const AccelOffsets &offsets);
+Orientation readOrientation(const GyroData &gyro, const AccelData &accel);
+void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, String wasd);
 
 #endif

@@ -106,3 +106,54 @@ AccelData readAccel(const AccelOffsets &offsets) {
     }
     return data;
 }
+
+Orientation readOrientation(const GyroData &gyro, const AccelData &accel) {
+    Orientation ori;
+    // Simple complementary filter for orientation estimation
+    static float pitch = 0.0, roll = 0.0, yaw = 0.0;
+    static unsigned long lastTime = millis();
+    unsigned long currentTime = millis();
+    float dt = (currentTime - lastTime) / 1000.0;  // Convert to seconds
+    lastTime = currentTime;
+
+    // Integrate gyro data
+    pitch += gyro.x * dt;
+    roll += gyro.y * dt;
+    yaw += gyro.z * dt;
+
+    // Calculate accelerometer angles
+    float accelPitch = atan2(accel.y, sqrt(accel.x * accel.x + accel.z * accel.z)) * 180.0 / PI;
+    float accelRoll = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z)) * 180.0 / PI;
+
+    // Complementary filter to combine gyro and accel
+    const float alpha = 0.98;
+    pitch = alpha * pitch + (1 - alpha) * accelPitch;
+    roll = alpha * roll + (1 - alpha) * accelRoll;
+
+    ori.pitch = pitch;
+    ori.roll = roll;
+    ori.yaw = yaw;  // Yaw is only from gyro integration
+
+    return ori;
+}
+
+void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, String wasd) {
+    if (wasd == "w") {
+        offsets.x += 1.0;  // Adjust pitch offset
+    } else if (wasd == "s") {
+        offsets.x -= 1.0;
+    } else if (wasd == "a") {
+        offsets.y += 1.0;  // Adjust roll offset
+    } else if (wasd == "d") {
+        offsets.y -= 1.0;
+    } else {
+        Serial.println("Invalid input for gyro offset adjustment. Use 'w', 'a', 's', or 'd'.");
+        return;
+    }
+    // Simple adjustment by averaging current offsets with drift
+    offsets.x = (offsets.x + drift.x) / 2.0;
+    offsets.y = (offsets.y + drift.y) / 2.0;
+    offsets.z = (offsets.z + drift.z) / 2.0;
+
+    Serial.printf("Adjusted Gyro Offsets: X=%.2f, Y=%.2f, Z=%.2f\n", offsets.x, offsets.y, offsets.z);
+}

@@ -44,16 +44,23 @@ void loop()
   // Main code for the robot's balancing loop
   GyroData gyro = readGyro(gyroOffsets);
   AccelData accel = readAccel(accelOffsets);
-
+  Orientation orientation = readOrientation(gyro, accel);
   // Calculate current angle
   float angle = calculateAngle(accel, gyro);
+
+  // Non-blocking serial input - process each character immediately
+  while (Serial.available()) {
+    char c = Serial.read();
+    adjustGyroOffsets(gyroOffsets, gyro, String(c).c_str());
+  }
 
   // Balance the robot
   balanceRobot(angle);
   // motorTest();
-
+  
   // Display gyro and accelerometer data on OLED using combined function
   // oled.displaySensorData(gyro, accel);
+  Serial.printf("Orientation - Pitch: %.2f, Roll: %.2f, Yaw: %.2f\n", orientation.pitch, orientation.roll, orientation.yaw);
 
   // Small delay for stability
   delay(10);

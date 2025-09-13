@@ -141,17 +141,17 @@ Orientation readOrientation(const GyroData &gyro, const AccelData &accel) {
     return ori;
 }
 
-void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, String wasd) {
-    if (wasd == "w") {
+void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl) {
+    if (ijkl == 'i') {
         offsets.x += 1.0;  // Adjust pitch offset
-    } else if (wasd == "s") {
+    } else if (ijkl == 'k') {
         offsets.x -= 1.0;
-    } else if (wasd == "a") {
+    } else if (ijkl == 'j') {
         offsets.y += 1.0;  // Adjust roll offset
-    } else if (wasd == "d") {
+    } else if (ijkl == 'l') {
         offsets.y -= 1.0;
     } else {
-        Serial.println("Invalid input for gyro offset adjustment. Use 'w', 'a', 's', or 'd'.");
+        Serial.println("Invalid input for gyro offset adjustment. Use 'i', 'j', 'k', or 'l'.");
         return;
     }
     // Simple adjustment by averaging current offsets with drift

@@ -58,8 +58,9 @@ void loop()
       calibrateGyro(gyroOffsets);
       calibrateAccel(accelOffsets);
       Serial.println("Recalibrated gyro and accelerometer.");
-    }
-    else
+    } else if (c == 'i' || c == 'j' || c == 'k' || c == 'l') {
+      adjustGyroOffsets(gyroOffsets, gyro, c);
+    } else
     {
       adjustPIDGains(c);
     }

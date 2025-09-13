@@ -2,7 +2,7 @@
 #include "control/input_controller.h"
 
 // PID controller for balancing
-PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0}; // Increased Kp, adjusted Kd
+PIDController balancePID = {15.0, 5.0, 5.0, 0.0, 0.0, 0, 0}; // Increased Kp, adjusted Kd
 
 // Complementary filter variables
 float currentAngle = 0.0;

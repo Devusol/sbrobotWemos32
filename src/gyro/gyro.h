@@ -43,6 +43,6 @@ void calibrateAccel(AccelOffsets &offsets);
 GyroData readGyro(const GyroOffsets &offsets);
 AccelData readAccel(const AccelOffsets &offsets);
 Orientation readOrientation(const GyroData &gyro, const AccelData &accel);
-void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, String wasd);
+void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl);
 
 #endif

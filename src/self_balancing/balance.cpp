@@ -1,44 +1,37 @@
-#include "balance.h"
+#in// PID controller for balancing
+PIDController balancePID =     Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
+
+    float error = angle - targetAngle; // Positive when tilted forward
+
+    // Apply deadband to reduce noise
+    if (abs(error) < DEAD_BAND) {
+        error = 0;
+    }
+
+    // Update PID, 5.0, 5.0, 0.0, 0.0, 0, 0};
+
+// Target angle (upright)
+const float TARGET_ANGLE = -90.0;
+
+// Deadband for error to reduce noise
+const float DEAD_BAND = 1.0; // degrees "balance.h"
 #include "control/input_controller.h"
 
 // PID controller for balancing
-PIDController balancePID = {15.0, 5.0, 5.0, 0.0, 0.0, 0, 0}; // Increased Kp, adjusted Kd
-
-// Complementary filter variables
-float currentAngle = 0.0;
-unsigned long lastAngleTime = 0;
+PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
 
 // Target angle (upright)
-const float TARGET_ANGLE = 0.0;
+const float TARGET_ANGLE = -90.0;
 
 // Initialize balancing
 void initBalance()
 {
     balancePID.lastTime = millis();
+
+    // Initialize currentAngle to the initial accelerometer angle
+    AccelData initialAccel = readAccel(accelOffsets);
+    currentAngle = atan2(initialAccel.z, initialAccel.x) * 180.0 / PI;
     lastAngleTime = millis();
-}
-
-// Calculate angle using complementary filter
-float calculateAngle(AccelData accel, GyroData gyro)
-{
-    unsigned long currentTime = millis();
-    float dt = (currentTime - lastAngleTime) / 1000.0; // Convert to seconds
-    lastAngleTime = currentTime;
-
-    // Calculate angle from accelerometer (pitch angle)
-    // Orientation: X down, Y right, Z forward
-    // Pitch angle around Y-axis: atan2(Z, X)
-    float accelAngle = atan2(accel.z, accel.x) * 180.0 / PI;
-
-    // Integrate gyro rate to get angle change
-    float gyroRate = gyro.y; // Y-axis for pitch rate
-    float gyroAngleChange = gyroRate * dt;
-
-    // Complementary filter
-    float alpha = 0.95; // Reduced alpha for faster response to accelerometer
-    currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
-
-    return currentAngle;
 }
 
 // Update PID controller
@@ -75,9 +68,11 @@ void balanceRobot(float targetAngle)
     GyroData gyro = readGyro(gyroOffsets);
     AccelData accel = readAccel(accelOffsets);
     float angle = calculateAngle(accel, gyro);
-    Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
+    // Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
 
-    float error = angle - targetAngle || TARGET_ANGLE; // Positive when tilted forward
+    // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
+
+    float error = angle - targetAngle; // Positive when tilted forward
 
     // Update PID
     float pidOutput = updatePID(balancePID, error);
@@ -93,7 +88,7 @@ void balanceRobot(float targetAngle)
 
 void adjustPIDGains(char qawsedrf)
 {
-    Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
+    // Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
 
     float kp = balancePID.kp, ki = balancePID.ki, kd = balancePID.kd, baseSpeed = balancePID.baseSpeed;
     if (qawsedrf == 'w')

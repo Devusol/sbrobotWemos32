@@ -7,7 +7,7 @@
 
 OLED_Display oled;
 
-float targetAngle = 0.0;
+float targetAngle = 180.0;
 
 void setup()
 {

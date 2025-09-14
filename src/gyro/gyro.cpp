@@ -1,6 +1,10 @@
 #include "gyro.h"
 GyroOffsets gyroOffsets;
 AccelOffsets accelOffsets;
+
+// Global variables for complementary filter
+float currentAngle = 0.0;
+unsigned long lastAngleTime = 0;
 // Initialize the gyroscope
 void initGyro()
 {
@@ -9,6 +13,13 @@ void initGyro()
     Wire.write(0x6B); // Power management register
     Wire.write(0);    // Wake up the gyro
     Wire.endTransmission();
+
+    // Set accelerometer range to 2g
+    Wire.beginTransmission(GYRO_I2C_ADDRESS);
+    Wire.write(0x1C); // Accel config register
+    Wire.write(0);    // 2g range
+    Wire.endTransmission();
+
     Serial.println("Gyroscope initialized");
 }
 
@@ -78,10 +89,10 @@ void calibrateAccel(AccelOffsets &offsets)
         delay(10);
     }
 
-    // For accel, when flat (X down, Z forward), X should be 1g, Z should be 0
-    offsets.x = sumX / numSamples - 16384; // Subtract 1g from X
+    // For accel, when upright (Z up, X forward), Z should be -1g, X should be 0
+    offsets.x = sumX / numSamples + 16384;
     offsets.y = sumY / numSamples;
-    offsets.z = sumZ / numSamples;
+    offsets.z = sumZ / numSamples; // Add 1g to Z
 
     Serial.printf("Accel offsets: X=%.2f, Y=%.2f, Z=%.2f\n", offsets.x, offsets.y, offsets.z);
 }
@@ -190,4 +201,27 @@ void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl)
     offsets.z = (offsets.z + drift.z) / 2.0;
 
     Serial.printf("Adjusted Gyro Offsets: X=%.2f, Y=%.2f, Z=%.2f\n", offsets.x, offsets.y, offsets.z);
+}
+
+// Calculate angle using complementary filter
+float calculateAngle(AccelData accel, GyroData gyro)
+{
+    unsigned long currentTime = millis();
+    float dt = (currentTime - lastAngleTime) / 1000.0; // Convert to seconds
+    lastAngleTime = currentTime;
+
+    // Calculate angle from accelerometer (pitch angle)
+    // Orientation: X down, Y right, Z forward
+    // Pitch angle around Y-axis: atan2(Z, X)
+    float accelAngle = atan2(accel.z, accel.x) * 180.0 / PI;
+
+    // Integrate gyro rate to get angle change
+    float gyroRate = -gyro.y; // Y-axis for pitch rate
+    float gyroAngleChange = gyroRate * dt;
+
+    // Complementary filter
+    float alpha = 0.8; // Reduced alpha for faster response to accelerometer
+    currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
+
+    return currentAngle;
 }

@@ -45,5 +45,10 @@ GyroData readGyro(const GyroOffsets &offsets);
 AccelData readAccel(const AccelOffsets &offsets);
 Orientation readOrientation(const GyroData &gyro, const AccelData &accel);
 void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl);
+float calculateAngle(AccelData accel, GyroData gyro);
+
+// Global variables for complementary filter
+extern float currentAngle;
+extern unsigned long lastAngleTime;
 
 #endif

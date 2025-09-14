@@ -7,7 +7,10 @@
 
 OLED_Display oled;
 
-float targetAngle = 180.0;
+float targetAngle = 87.0;
+
+// Deadband for error to reduce noise
+float deadBand = 2.0; // degrees
 
 void setup()
 {
@@ -57,8 +60,9 @@ void loop()
     if (key == 'c')
     {
       stopMovement();
+      delay(1000); // Small delay to ensure stop command is processed
       calibrateAll();
-      targetAngle = 0.0;
+      targetAngle = 87.0;
       Serial.println("Recalibrated gyro and accelerometer.");
     }
     else if (key == 'v')
@@ -71,6 +75,17 @@ void loop()
       targetAngle -= 0.1; // Decrease target angle by 0.1 degree
       Serial.println("Target angle decreased to " + String(targetAngle) + " degrees.");
     }
+    else if (key == 't')
+    {
+      deadBand += 1; // Increase deadband by 1 degree
+      Serial.println("Deadband increased to " + String(deadBand) + " degrees.");
+    }
+    else if (key == 'g')
+    {
+      deadBand -= 1; // Decrease deadband by 1 degree
+      if (deadBand < 0) deadBand = 0; // Prevent negative deadband
+      Serial.println("Deadband decreased to " + String(deadBand) + " degrees.");
+    }
     else
     {
       adjustPIDGains(key);
@@ -78,7 +93,7 @@ void loop()
   }
 
   // Balance the robot
-  balanceRobot(targetAngle);
+  balanceRobot(targetAngle, deadBand);
 
   // Handle web server requests
   // handleWebServer();

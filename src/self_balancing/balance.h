@@ -5,10 +5,11 @@
 #include "gyro/gyro.h"
 
 // PID controller structure
-struct PIDController {
-    float kp;  // Proportional gain
-    float ki;  // Integral gain
-    float kd;  // Derivative gain
+struct PIDController
+{
+    float kp; // Proportional gain
+    float ki; // Integral gain
+    float kd; // Derivative gain
     float integral;
     float previousError;
     unsigned long lastTime;
@@ -21,9 +22,8 @@ extern AccelOffsets accelOffsets;
 
 // Function declarations
 void initBalance();
-float calculateAngle(AccelData accel, GyroData gyro);
 float updatePID(PIDController &pid, float error);
-void balanceRobot(float angle);
+void balanceRobot(float angle, float deadBand);
 void adjustPIDGains(char input);
 
 // Global PID controller access

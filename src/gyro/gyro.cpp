@@ -5,6 +5,7 @@ AccelOffsets accelOffsets;
 // Global variables for complementary filter
 float currentAngle = 0.0;
 unsigned long lastAngleTime = 0;
+
 // Initialize the gyroscope
 void initGyro()
 {
@@ -66,34 +67,10 @@ void calibrateGyro(GyroOffsets &offsets)
 // Calibrate accelerometer by averaging readings when flat
 void calibrateAccel(AccelOffsets &offsets)
 {
-    const int numSamples = 100;
-    float sumX = 0, sumY = 0, sumZ = 0;
-
-    Serial.println("Calibrating accelerometer... Keep the device flat and stationary.");
-
-    for (int i = 0; i < numSamples; i++)
-    {
-        Wire.beginTransmission(GYRO_I2C_ADDRESS);
-        Wire.write(0x3B);
-        Wire.endTransmission();
-        Wire.requestFrom(GYRO_I2C_ADDRESS, 6);
-        if (Wire.available() == 6)
-        {
-            int16_t rawX = Wire.read() << 8 | Wire.read();
-            int16_t rawY = Wire.read() << 8 | Wire.read();
-            int16_t rawZ = Wire.read() << 8 | Wire.read();
-            sumX += rawX;
-            sumY += rawY;
-            sumZ += rawZ;
-        }
-        delay(10);
-    }
-
-    // For accel, when upright (Z up, X forward), Z should be -1g, X should be 0
-    offsets.x = sumX / numSamples + 16384;
-    offsets.y = sumY / numSamples;
-    offsets.z = sumZ / numSamples; // Add 1g to Z
-
+    Serial.println("Setting accelerometer offsets to 0.");
+    offsets.x = 0;
+    offsets.y = 0;
+    offsets.z = 0;
     Serial.printf("Accel offsets: X=%.2f, Y=%.2f, Z=%.2f\n", offsets.x, offsets.y, offsets.z);
 }
 
@@ -149,7 +126,7 @@ Orientation readOrientation(const GyroData &gyro, const AccelData &accel)
 
     // Integrate gyro data (adjusted for X-down, Y-right, Z-forward orientation)
     // Pitch is rotation around Y-axis, roll around X-axis
-    pitch += gyro.y * dt;
+    pitch += -gyro.y * dt;
     roll += gyro.x * dt;
     yaw += gyro.z * dt;
 
@@ -157,8 +134,8 @@ Orientation readOrientation(const GyroData &gyro, const AccelData &accel)
     // Gravity along +X, so up is -X
     // Pitch (around Y): atan2(Z, X)
     // Roll (around X): atan2(Y, X) - but since gravity along X, roll accel measurement is limited
-    float accelPitch = atan2(accel.z, accel.x) * 180.0 / PI;
-    float accelRoll = atan2(accel.y, accel.x) * 180.0 / PI;
+    float accelPitch = atan2(-accel.x, accel.z) * 180.0 / PI;
+    float accelRoll = atan2(accel.y, accel.z) * 180.0 / PI;
 
     // Complementary filter to combine gyro and accel
     const float alpha = 0.95; // Reduced for faster response
@@ -204,8 +181,11 @@ void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl)
 }
 
 // Calculate angle using complementary filter
-float calculateAngle(AccelData accel, GyroData gyro)
+// float calculateAngle(AccelData accel, GyroData gyro)
+float calculateAngle()
 {
+    AccelData accel = readAccel(accelOffsets);
+    GyroData gyro = readGyro(gyroOffsets);
     unsigned long currentTime = millis();
     float dt = (currentTime - lastAngleTime) / 1000.0; // Convert to seconds
     lastAngleTime = currentTime;
@@ -213,15 +193,18 @@ float calculateAngle(AccelData accel, GyroData gyro)
     // Calculate angle from accelerometer (pitch angle)
     // Orientation: X down, Y right, Z forward
     // Pitch angle around Y-axis: atan2(Z, X)
-    float accelAngle = atan2(accel.z, accel.x) * 180.0 / PI;
+    float accelAngle = atan2(-accel.x, accel.z) * 180.0 / PI;
 
     // Integrate gyro rate to get angle change
     float gyroRate = -gyro.y; // Y-axis for pitch rate
     float gyroAngleChange = gyroRate * dt;
 
     // Complementary filter
-    float alpha = 0.8; // Reduced alpha for faster response to accelerometer
+    float alpha = 0.02; // Reduced alpha for faster response to accelerometer
     currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
+
+    // Normalize angle to 0-360 degrees
+    currentAngle = fmod(currentAngle + 360.0, 360.0);
 
     return currentAngle;
 }

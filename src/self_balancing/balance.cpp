@@ -1,27 +1,8 @@
-#in// PID controller for balancing
-PIDController balancePID =     Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
-
-    float error = angle - targetAngle; // Positive when tilted forward
-
-    // Apply deadband to reduce noise
-    if (abs(error) < DEAD_BAND) {
-        error = 0;
-    }
-
-    // Update PID, 5.0, 5.0, 0.0, 0.0, 0, 0};
-
-// Target angle (upright)
-const float TARGET_ANGLE = -90.0;
-
-// Deadband for error to reduce noise
-const float DEAD_BAND = 1.0; // degrees "balance.h"
+#include "balance.h"
 #include "control/input_controller.h"
 
 // PID controller for balancing
 PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
-
-// Target angle (upright)
-const float TARGET_ANGLE = -90.0;
 
 // Initialize balancing
 void initBalance()
@@ -30,7 +11,8 @@ void initBalance()
 
     // Initialize currentAngle to the initial accelerometer angle
     AccelData initialAccel = readAccel(accelOffsets);
-    currentAngle = atan2(initialAccel.z, initialAccel.x) * 180.0 / PI;
+    currentAngle = atan2(-initialAccel.x, initialAccel.z) * 180.0 / PI;
+    currentAngle = fmod(currentAngle + 360.0, 360.0);
     lastAngleTime = millis();
 }
 
@@ -62,17 +44,22 @@ float updatePID(PIDController &pid, float error)
 }
 
 // Balance the robot
-void balanceRobot(float targetAngle)
+void balanceRobot(float targetAngle, float deadBand)
 {
-
-    GyroData gyro = readGyro(gyroOffsets);
-    AccelData accel = readAccel(accelOffsets);
-    float angle = calculateAngle(accel, gyro);
-    // Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
+ 
+    float angle = calculateAngle();
+    angle = round(angle); // Round to nearest whole degree to reduce noise
+    Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
 
     // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
 
     float error = angle - targetAngle; // Positive when tilted forward
+
+    // Apply deadband to reduce noise
+    if (abs(error) < deadBand)
+    {
+        error = 0;
+    }
 
     // Update PID
     float pidOutput = updatePID(balancePID, error);
@@ -88,7 +75,7 @@ void balanceRobot(float targetAngle)
 
 void adjustPIDGains(char qawsedrf)
 {
-    // Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
+    Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
 
     float kp = balancePID.kp, ki = balancePID.ki, kd = balancePID.kd, baseSpeed = balancePID.baseSpeed;
     if (qawsedrf == 'w')

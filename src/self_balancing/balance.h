@@ -15,6 +15,10 @@ struct PIDController {
     int baseSpeed;
 };
 
+// Global variables
+extern GyroOffsets gyroOffsets;
+extern AccelOffsets accelOffsets;
+
 // Function declarations
 void initBalance();
 float calculateAngle(AccelData accel, GyroData gyro);

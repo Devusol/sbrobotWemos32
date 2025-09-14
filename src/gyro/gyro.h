@@ -38,6 +38,7 @@ struct Orientation {
 
 // Function declarations
 void initGyro();
+void calibrateAll();
 void calibrateGyro(GyroOffsets &offsets);
 void calibrateAccel(AccelOffsets &offsets);
 GyroData readGyro(const GyroOffsets &offsets);

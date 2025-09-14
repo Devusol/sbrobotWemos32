@@ -69,9 +69,15 @@ float updatePID(PIDController &pid, float error)
 }
 
 // Balance the robot
-void balanceRobot(float angle)
+void balanceRobot(float targetAngle)
 {
-    float error = angle - TARGET_ANGLE; // Positive when tilted forward
+
+    GyroData gyro = readGyro(gyroOffsets);
+    AccelData accel = readAccel(accelOffsets);
+    float angle = calculateAngle(accel, gyro);
+    Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
+
+    float error = angle - targetAngle || TARGET_ANGLE; // Positive when tilted forward
 
     // Update PID
     float pidOutput = updatePID(balancePID, error);
@@ -87,7 +93,7 @@ void balanceRobot(float angle)
 
 void adjustPIDGains(char qawsedrf)
 {
-    Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3)+", BaseSpeed=" + String(balancePID.baseSpeed));
+    Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
 
     float kp = balancePID.kp, ki = balancePID.ki, kd = balancePID.kd, baseSpeed = balancePID.baseSpeed;
     if (qawsedrf == 'w')

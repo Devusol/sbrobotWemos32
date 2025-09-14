@@ -6,8 +6,8 @@
 #include "self_balancing/balance.h"
 
 OLED_Display oled;
-GyroOffsets gyroOffsets;
-AccelOffsets accelOffsets;
+
+float targetAngle = 0.0;
 
 void setup()
 {
@@ -30,8 +30,10 @@ void setup()
   // Initialize the robot controller
   initController();
   initGyro();
-  calibrateGyro(gyroOffsets);
-  calibrateAccel(accelOffsets);
+  calibrateAll();
+
+  // calibrateGyro(gyroOffsets);
+  // calibrateAccel(accelOffsets);
   initBalance();
   setSpeed(60); // Set initial speed to 60%
 
@@ -42,32 +44,41 @@ void loop()
 {
   // handleWebServer();
   // Main code for the robot's balancing loop
-  GyroData gyro = readGyro(gyroOffsets);
-  AccelData accel = readAccel(accelOffsets);
-  Orientation orientation = readOrientation(gyro, accel);
+  // GyroData gyro = readGyro(gyroOffsets);
+  // AccelData accel = readAccel(accelOffsets);
+  // Orientation orientation = readOrientation(gyro, accel);
   // Calculate current angle
-  float angle = calculateAngle(accel, gyro);
-
+  // float angle = calculateAngle(accel, gyro);
+  // Serial.printf("Angle: %.2f\n", angle);
   // Non-blocking serial input - process each character immediately
   while (Serial.available())
   {
-    char c = Serial.read();
-    if (c == 'c')
+    char key = Serial.read();
+    if (key == 'c')
     {
       stopMovement();
-      calibrateGyro(gyroOffsets);
-      calibrateAccel(accelOffsets);
+      calibrateAll();
+      targetAngle = 0.0;
       Serial.println("Recalibrated gyro and accelerometer.");
-    } else if (c == 'i' || c == 'j' || c == 'k' || c == 'l') {
-      adjustGyroOffsets(gyroOffsets, gyro, c);
-    } else
+    }
+    else if (key == 'v')
     {
-      adjustPIDGains(c);
+      targetAngle += 0.1; // Increase target angle by 0.1 degree
+      Serial.println("Target angle increased to " + String(targetAngle) + " degrees.");
+    }
+    else if (key == 'b')
+    {
+      targetAngle -= 0.1; // Decrease target angle by 0.1 degree
+      Serial.println("Target angle decreased to " + String(targetAngle) + " degrees.");
+    }
+    else
+    {
+      adjustPIDGains(key);
     }
   }
 
   // Balance the robot
-  balanceRobot(angle);
+  balanceRobot(targetAngle);
 
   // Handle web server requests
   // handleWebServer();

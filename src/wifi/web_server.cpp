@@ -1,5 +1,10 @@
 #include "wifi_manager.h"
 #include "control/input_controller.h"
+#include "self_balancing/balance.h"
+
+// External declarations for global variables from main.cpp
+extern GyroOffsets gyroOffsets;
+extern AccelOffsets accelOffsets;
 
 // Network scan results
 String scannedNetworks = "";
@@ -258,6 +263,9 @@ enum RequestType {
   REQ_SAVE_WIFI,
   REQ_CONTROL,
   REQ_FAVICON,
+  REQ_GET_PID,
+  REQ_SET_PID,
+  REQ_CALIBRATE,
   REQ_UNKNOWN
 };
 
@@ -269,9 +277,12 @@ RequestType getRequestType(String path, String method) {
     if (path == "/status") return REQ_STATUS;
     if (path == "/scan-networks") return REQ_SCAN_NETWORKS;
     if (path == "/favicon.ico") return REQ_FAVICON;
+    if (path == "/get-pid") return REQ_GET_PID;
   } else if (method == "POST") {
     if (path == "/save-wifi") return REQ_SAVE_WIFI;
     if (path == "/control") return REQ_CONTROL;
+    if (path == "/set-pid") return REQ_SET_PID;
+    if (path == "/calibrate") return REQ_CALIBRATE;
   }
   return REQ_UNKNOWN;
 }
@@ -282,6 +293,9 @@ void handleStatus(WiFiClient client);
 void handleSaveWiFi(WiFiClient client, String body);
 void handleScanNetworks(WiFiClient client);
 void handleControl(WiFiClient client, String body);
+void handleGetPID(WiFiClient client);
+void handleSetPID(WiFiClient client, String body);
+void handleCalibrate(WiFiClient client);
 
 // Function to handle web server requests
 void handleWebServer() {
@@ -381,6 +395,9 @@ void handleWebServer() {
         case REQ_SCAN_NETWORKS:
           handleScanNetworks(client);
           break;
+        case REQ_GET_PID:
+          handleGetPID(client);
+          break;
         case REQ_FAVICON:
           client.println("HTTP/1.1 404 Not Found");
           client.println("Content-Type: text/plain");
@@ -420,6 +437,12 @@ void handleWebServer() {
           break;
         case REQ_CONTROL:
           handleControl(client, body);
+          break;
+        case REQ_SET_PID:
+          handleSetPID(client, body);
+          break;
+        case REQ_CALIBRATE:
+          handleCalibrate(client);
           break;
         default:
           client.println("HTTP/1.1 404 Not Found");
@@ -646,4 +669,83 @@ void handleControl(WiFiClient client, String body) {
   client.println("Connection: close");
   client.println();
   client.println("{\"success\":true,\"message\":\"Command received: " + command + "\"}");
+}
+
+// Handle get PID endpoint
+void handleGetPID(WiFiClient client) {
+  String json = "{";
+  json += "\"kp\":" + String(balancePID.kp, 3) + ",";
+  json += "\"ki\":" + String(balancePID.ki, 3) + ",";
+  json += "\"kd\":" + String(balancePID.kd, 3);
+  json += "}";
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
+  client.println();
+  client.println(json);
+}
+
+// Handle set PID endpoint
+void handleSetPID(WiFiClient client, String body) {
+  // Parse JSON body
+  float kp = balancePID.kp;
+  float ki = balancePID.ki;
+  float kd = balancePID.kd;
+
+  // Extract kp
+  int kpStart = body.indexOf("\"kp\":") + 5;
+  int kpEnd = body.indexOf(",", kpStart);
+  if (kpEnd == -1) kpEnd = body.indexOf("}", kpStart);
+  if (kpStart > 4 && kpEnd > kpStart) {
+    kp = body.substring(kpStart, kpEnd).toFloat();
+  }
+
+  // Extract ki
+  int kiStart = body.indexOf("\"ki\":") + 5;
+  int kiEnd = body.indexOf(",", kiStart);
+  if (kiEnd == -1) kiEnd = body.indexOf("}", kiStart);
+  if (kiStart > 4 && kiEnd > kiStart) {
+    ki = body.substring(kiStart, kiEnd).toFloat();
+  }
+
+  // Extract kd
+  int kdStart = body.indexOf("\"kd\":") + 5;
+  int kdEnd = body.indexOf("}", kdStart);
+  if (kdStart > 4 && kdEnd > kdStart) {
+    kd = body.substring(kdStart, kdEnd).toFloat();
+  }
+
+  // Update PID values
+  balancePID.kp = kp;
+  balancePID.ki = ki;
+  balancePID.kd = kd;
+
+  SERIAL_PRINTLN("PID values updated: Kp=" + String(kp, 3) + ", Ki=" + String(ki, 3) + ", Kd=" + String(kd, 3));
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
+  client.println();
+  client.println("{\"success\":true,\"message\":\"PID values updated\"}");
+}
+
+// Handle calibrate endpoint
+void handleCalibrate(WiFiClient client) {
+  SERIAL_PRINTLN("Starting sensor calibration...");
+
+  // Perform calibration
+  calibrateGyro(gyroOffsets);
+  calibrateAccel(accelOffsets);
+
+  SERIAL_PRINTLN("Calibration completed");
+
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
+  client.println();
+  client.println("{\"success\":true,\"message\":\"Calibration completed\"}");
 }

@@ -21,9 +21,34 @@ struct AccelData {
     float z;
 };
 
+// Offset structures
+struct GyroOffsets {
+    float x, y, z;
+};
+
+struct AccelOffsets {
+    float x, y, z;
+};
+
+struct Orientation {
+    float pitch; // Rotation around X-axis
+    float roll;  // Rotation around Y-axis
+    float yaw;   // Rotation around Z-axis
+};
+
 // Function declarations
 void initGyro();
-GyroData readGyro();
-AccelData readAccel();
+void calibrateAll();
+void calibrateGyro(GyroOffsets &offsets);
+void calibrateAccel(AccelOffsets &offsets);
+GyroData readGyro(const GyroOffsets &offsets);
+AccelData readAccel(const AccelOffsets &offsets);
+Orientation readOrientation(const GyroData &gyro, const AccelData &accel);
+void adjustGyroOffsets(GyroOffsets &offsets, const GyroData &drift, char ijkl);
+float calculateAngle();
+
+// Global variables for complementary filter
+extern float currentAngle;
+extern unsigned long lastAngleTime;
 
 #endif

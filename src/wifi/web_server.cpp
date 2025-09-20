@@ -90,14 +90,14 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
 
 void initWebServerWithWebSocket()
 {
-  // Serve static files from LittleFS
-  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
-
   // WebSocket handler
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
   // API endpoints
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/index.html", "text/html");
+  });
   server.on("/status", HTTP_GET, handleStatus);
   server.on("/scan-networks", HTTP_GET, handleScanNetworks);
   server.on("/get-pid", HTTP_GET, handleGetPID);
@@ -107,6 +107,17 @@ void initWebServerWithWebSocket()
   server.on("/control", HTTP_POST, handleControl);
   server.on("/set-pid", HTTP_POST, handleSetPID);
   server.on("/calibrate", HTTP_POST, handleCalibrate);
+
+  // Serve other static files
+  server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/script.js", "application/javascript");
+  });
+  server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/styles.css", "text/css");
+  });
+  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/favicon.ico", "image/x-icon");
+  });
 
   // Start server
   server.begin();
@@ -174,7 +185,7 @@ void handleStatus(AsyncWebServerRequest *request)
     json += "\"connected\":true,";
     json += "\"ssid\":\"" + WiFi.SSID() + "\",";
     json += "\"ip\":\"" + localIP.toString() + "\"";
-    SERIAL_PRINTLN("STA Mode - IP: " + localIP.toString());
+    Serial.println("STA Mode - IP: " + localIP.toString());
   }
   else
   {

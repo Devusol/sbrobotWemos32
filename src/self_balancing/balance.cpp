@@ -1,8 +1,8 @@
 #include "balance.h"
 #include "control/input_controller.h"
 
-// PID controller for balancing
-PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
+// PID controller for balancing {kp, ki, kd, _, _, _, baseSpeed}
+PIDController balancePID = {1.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
 
 // Initialize balancing
 void initBalance()
@@ -46,7 +46,7 @@ float updatePID(PIDController &pid, float error)
 // Balance the robot
 void balanceRobot(float targetAngle, float deadBand)
 {
- 
+
     float angle = calculateAngle();
     angle = round(angle); // Round to nearest whole degree to reduce noise
     // Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
@@ -81,11 +81,11 @@ void adjustPIDGains(char qawsedrf)
     float kp = balancePID.kp, ki = balancePID.ki, kd = balancePID.kd, baseSpeed = balancePID.baseSpeed;
     if (qawsedrf == 'w')
     {
-        kp += 0.1; // Increase Kp
+        kp *= 10; // Increase Kp
     }
     else if (qawsedrf == 's')
     {
-        kp -= 0.1; // Decrease Kp
+        kp /= 10; // Decrease Kp
     }
     else if (qawsedrf == 'e')
     {

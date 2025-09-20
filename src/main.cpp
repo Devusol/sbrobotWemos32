@@ -10,7 +10,7 @@ OLED_Display oled;
 float targetAngle = 87.0;
 
 // Deadband for error to reduce noise
-float deadBand = 2.0; // degrees
+float deadBand = 0.0; // degrees
 
 void setup()
 {

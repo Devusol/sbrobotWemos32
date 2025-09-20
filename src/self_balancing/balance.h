@@ -22,7 +22,7 @@ extern AccelOffsets accelOffsets;
 
 // Function declarations
 void initBalance();
-float updatePID(PIDController &pid, float error);
+float updatePID(PIDController &pid, float error, float deadBand);
 void balanceRobot(float angle, float deadBand);
 void adjustPIDGains(char input);
 

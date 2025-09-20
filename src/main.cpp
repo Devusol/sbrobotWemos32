@@ -5,12 +5,18 @@
 #include "display/oled.h"
 #include "self_balancing/balance.h"
 
+// Function prototype for sending angle data
+void sendAngleData(float angle, float target);
+
 // OLED_Display oled;
 
 float targetAngle = 87.0;
 
 // Deadband for error to reduce noise
 float deadBand = 0.0; // degrees
+
+// Counter for periodic angle data sending
+static int angleSendCounter = 0;
 
 void setup()
 {
@@ -93,6 +99,13 @@ void loop()
 
   // Balance the robot
   balanceRobot(targetAngle, deadBand);
+
+  // Send angle data to WebSocket clients periodically (every 20 loops ~100ms)
+  angleSendCounter++;
+  if (angleSendCounter >= 20) {
+    sendAngleData(currentAngle, targetAngle);
+    angleSendCounter = 0;
+  }
 
   // Handle web server requests
   // handleWebServer();

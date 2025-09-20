@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Self-Balancing Robot Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .control-panel {
             background-color: #f8f9fa;
@@ -111,6 +112,12 @@
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Console</button>
                                 <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="scrollToBottom()">Scroll to Bottom</button>
                             </div>
+                        </div>
+
+                        <!-- Angle Plot -->
+                        <div class="control-panel">
+                            <h4>Angle Plot (Real-time)</h4>
+                            <canvas id="angleChart" width="400" height="200"></canvas>
                         </div>
 
                     </div>

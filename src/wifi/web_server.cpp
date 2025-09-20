@@ -8,6 +8,7 @@ bool ledState = 0;
 // External declarations for global variables from main.cpp
 extern GyroOffsets gyroOffsets;
 extern AccelOffsets accelOffsets;
+extern float currentAngle;
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -162,8 +163,25 @@ void addToSerialBuffer(String message)
     serialBuffer = serialBuffer.substring(excess);
   }
 
-  // Broadcast to WebSocket clients
-  ws.textAll(timestampedMessage);
+  // Broadcast to WebSocket clients (only if queue not full)
+  if (ws.availableForWriteAll()) {
+    ws.textAll(timestampedMessage);
+  }
+}
+
+// Send angle data to WebSocket clients
+void sendAngleData(float angle, float target)
+{
+  String jsonData = "{";
+  jsonData += "\"type\":\"angle\",";
+  jsonData += "\"current\":" + String(angle, 2) + ",";
+  jsonData += "\"target\":" + String(target, 2);
+  jsonData += "}";
+
+  // Only send if WebSocket can accept messages (prevents queue overflow)
+  if (ws.availableForWriteAll()) {
+    ws.textAll(jsonData);
+  }
 }
 
 // Handle status endpoint

@@ -1,15 +1,15 @@
 #include "wifi_manager.h"
 
 // WiFi credentials
-char ssid[32] = "YOUR_WIFI_SSID";
-char password[64] = "YOUR_WIFI_PASSWORD";
+char ssid[32] = "Slow_Network";
+char password[64] = "W1F1_-Pa55!";
 
 // AP Mode credentials
 const char* ap_ssid = "Robot_AP";
 const char* ap_password = "robot_password";
 
 Preferences preferences;
-WiFiServer server(80);
+// WiFiServer server(80);
 
 void initWiFi() {
   // Initialize LittleFS
@@ -38,9 +38,9 @@ void initWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     SERIAL_PRINTLN("\nConnected to WiFi!");
     SERIAL_PRINT("IP Address: ");
-    SERIAL_PRINTLN(WiFi.localIP().toString());
-    server.begin();  // Start HTTP server in STA mode
-    SERIAL_PRINTLN("HTTP server started on port 80");
+    SERIAL_PRINTLN(WiFi.localIP());
+    // server.begin();  // Start HTTP server in STA mode
+    // SERIAL_PRINTLN("HTTP server started on port 80");
   } else {
     SERIAL_PRINTLN("\nFailed to connect, switching to AP mode.");
     switchToAPMode();

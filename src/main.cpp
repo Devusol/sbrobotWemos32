@@ -5,7 +5,7 @@
 #include "display/oled.h"
 #include "self_balancing/balance.h"
 
-OLED_Display oled;
+// OLED_Display oled;
 
 float targetAngle = 87.0;
 
@@ -15,20 +15,19 @@ float deadBand = 0.0; // degrees
 void setup()
 {
   Serial.begin(115200);
-  // Initialize OLED display
-  if (!oled.begin())
-  {
-    Serial.println("OLED initialization failed");
-  }
-  else
-  {
-    Serial.println("OLED initialized successfully");
-    // Set brightness to a higher level (255 out of 255 for maximum visibility)
-    oled.setBrightness(255);
-    oled.clearDisplay();
-    oled.displayText("Robot Initializing...", 0, 0, 1);
-    oled.updateDisplay();
-  }
+ 
+  // if (!oled.begin())
+  // {
+  //   Serial.println("OLED initialization failed");
+  // }
+  // else
+  // {
+  //   Serial.println("OLED initialized successfully");
+  //   oled.setBrightness(255);
+  //   oled.clearDisplay();
+  //   oled.displayText("Robot Initializing...", 0, 0, 1);
+  //   oled.updateDisplay();
+  // }
 
   // Initialize the robot controller
   initController();
@@ -40,7 +39,7 @@ void setup()
   initBalance();
   setSpeed(60); // Set initial speed to 60%
 
-  // initWiFi();
+  initWiFi();
 }
 
 void loop()

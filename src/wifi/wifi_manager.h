@@ -11,8 +11,6 @@
 // Serial capturing functionality
 extern String serialBuffer;
 extern const int MAX_SERIAL_BUFFER;
-extern WiFiClient sseClient;
-extern bool sseConnected;
 
 void addToSerialBuffer(String message);
 
@@ -36,7 +34,7 @@ extern String scannedNetworks;
 void initWiFi();
 void switchToAPMode();
 void onWiFiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
-void handleWebServer();
+void initWebServerWithWebSocket();
 void scanNetworks();
 
 #endif

@@ -104,8 +104,12 @@
                         <!-- Serial Console -->
                         <div class="control-panel">
                             <h4>Serial Console</h4>
-                            <div id="serialConsole">
-                                Serial console disabled for better performance
+                            <div id="serialConsole" style="height: 300px; overflow-y: auto; background-color: #000; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                                Connecting to serial console...
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Console</button>
+                                <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="scrollToBottom()">Scroll to Bottom</button>
                             </div>
                         </div>
 
@@ -118,13 +122,48 @@
     <script>
         let statusInterval;
         let currentPID = { kp: 5.0, ki: 0.0, kd: 0.5 };
+        let ws;
+        let consoleElement;
 
         // Initialize the page
         window.onload = function() {
             loadPIDValues();
             setupEventListeners();
             statusInterval = setInterval(updateStatus, 5000); // Update status every 5 seconds
+            initWebSocket();
         };
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            consoleElement = document.getElementById('serialConsole');
+            ws = new WebSocket('ws://' + window.location.host + '/ws');
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                consoleElement.textContent = 'WebSocket connected. Waiting for serial data...\n';
+                // Request current buffer
+                ws.send('get-buffer');
+            };
+            
+            ws.onmessage = function(event) {
+                if (consoleElement) {
+                    consoleElement.textContent += event.data;
+                    consoleElement.scrollTop = consoleElement.scrollHeight;
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                if (consoleElement) {
+                    consoleElement.textContent += '\nWebSocket disconnected. Reconnecting...\n';
+                }
+                setTimeout(initWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
 
         // Load current PID values from the robot
         function loadPIDValues() {
@@ -182,16 +221,12 @@
 
         // Update PID values on the robot
         function updatePID() {
-            const kp = parseFloat(document.getElementById('kpSlider').value);
-            const ki = parseFloat(document.getElementById('kiSlider').value);
-            const kd = parseFloat(document.getElementById('kdSlider').value);
-
             fetch('/set-pid', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({ kp: kp, ki: ki, kd: kd })
+                body: `kp=${currentPID.kp}&ki=${currentPID.ki}&kd=${currentPID.kd}`
             })
             .then(response => response.json())
             .then(data => {
@@ -214,11 +249,7 @@
                 document.getElementById('calibrate').textContent = 'Calibrating...';
                 
                 fetch('/calibrate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({})
+                    method: 'POST'
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -253,9 +284,9 @@
             fetch('/control', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({ command: command, value: "" })
+                body: `command=${command}&value=`
             })
             .catch(error => console.error('Error sending command:', error));
         }
@@ -276,6 +307,23 @@
                     document.getElementById('statusDisplay').innerHTML = statusHtml;
                 })
                 .catch(error => console.error('Error updating status:', error));
+        }
+
+        // Clear console
+        function clearConsole() {
+            if (consoleElement) {
+                consoleElement.textContent = '';
+            }
+            fetch('/clear-console')
+                .then(response => response.json())
+                .catch(error => console.error('Error clearing console:', error));
+        }
+
+        // Scroll console to bottom
+        function scrollToBottom() {
+            if (consoleElement) {
+                consoleElement.scrollTop = consoleElement.scrollHeight;
+            }
         }
     </script>
 </body>

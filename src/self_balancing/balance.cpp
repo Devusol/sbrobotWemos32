@@ -68,12 +68,12 @@ void balanceRobot(float targetAngle, float deadBand)
     float error = angle - targetAngle; // Positive when tilted forward
     // Serial.printf("Angle: %.2f, Error: %.2f\n", angle, error);
     // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, targetAngle, error);
-    Serial.print(">Angle:");
-    Serial.println(angle);
-    Serial.print(">Target:");
-    Serial.println(targetAngle);
-    Serial.print(">Error:");
-    Serial.println(error);
+    // Serial.print(">Angle:");
+    // Serial.println(angle);
+    // Serial.print(">Target:");
+    // Serial.println(targetAngle);
+    // Serial.print(">Error:");
+    // Serial.println(error);
 
     // Apply deadband to reduce noise
     if (abs(error) < deadBand)

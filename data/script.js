@@ -81,21 +81,7 @@ function updatePIDDisplays() {
 
 // Adjust PID values with buttons
 function adjustPID(param, delta) {
-    // Apply limits
-    const limits = {
-        kp: { min: 0, max: 20 },
-        ki: { min: 0, max: 10 },
-        kd: { min: 0, max: 5 }
-    };
-
-    currentPID[param] += delta;
-    currentPID[param] = Math.max(limits[param].min, Math.min(limits[param].max, currentPID[param]));
-
-    // Round to appropriate precision
-    const precision = param === 'kp' ? 1 : 2;
-    currentPID[param] = Math.round(currentPID[param] * Math.pow(10, precision)) / Math.pow(10, precision);
-
-    updatePIDDisplays();
+    ws.send(JSON.stringify({type: "adjust-pid", param: param, delta: delta}));
 }
 
 // Setup event listeners

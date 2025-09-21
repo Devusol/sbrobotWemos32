@@ -90,6 +90,35 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           String response = "{\"type\":\"pid-updated\",\"success\":true}";
           ws.textAll(response);
         }
+        else if (type == "adjust-pid")
+        {
+          String param = doc["param"];
+          float delta = doc["delta"];
+          if (param == "kp")
+          {
+            balancePID.kp += delta;
+            balancePID.kp = constrain(balancePID.kp, 0.0, 20.0);
+          }
+          else if (param == "ki")
+          {
+            balancePID.ki += delta;
+            balancePID.ki = constrain(balancePID.ki, 0.0, 10.0);
+          }
+          else if (param == "kd")
+          {
+            balancePID.kd += delta;
+            balancePID.kd = constrain(balancePID.kd, 0.0, 5.0);
+          }
+          SERIAL_PRINTLN("PID adjusted via WS: " + param + " by " + String(delta, 3));
+          // Send back updated PID values
+          String json = "{";
+          json += "\"type\":\"pid-values\",";
+          json += "\"kp\":" + String(balancePID.kp, 3) + ",";
+          json += "\"ki\":" + String(balancePID.ki, 3) + ",";
+          json += "\"kd\":" + String(balancePID.kd, 3);
+          json += "}";
+          ws.textAll(json);
+        }
       }
     }
   }

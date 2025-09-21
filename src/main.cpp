@@ -93,7 +93,7 @@ void loop()
     }
     else
     {
-      adjustPIDGains(key);
+      adjustPIDGainsFromSerial(key);
     }
   }
 

@@ -54,10 +54,12 @@
                                 <div class="col-md-4">
                                     <div class="pid-control text-center">
                                         <label class="form-label">Proportional (Kp)</label>
+                                        Step Amt: <input type="number" id="kpInput" class="form-control"  value="1">
+                                          
                                         <div class="d-flex justify-content-center align-items-center mb-2">
                                             <button class="btn btn-outline-secondary me-2" onclick="adjustPID('kp', -0.1)">-</button>
                                             <span id="kpValue" class="pid-value fs-4 mx-3">0.000</span>
-                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kp', 0.1)">+</button>
+                                             <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kp', 0.1)">+</button>
                                         </div>
                                     </div>
                                 </div>

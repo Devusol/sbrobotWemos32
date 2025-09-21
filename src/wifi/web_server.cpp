@@ -30,39 +30,37 @@ void handleGetPID(AsyncWebServerRequest *request);
 void handleSetPID(AsyncWebServerRequest *request);
 void handleCalibrate(AsyncWebServerRequest *request);
 void handleClearConsole(AsyncWebServerRequest *request);
-
-
+void initRoutes();
 
 void notifyClients()
 {
-    ws.textAll(String(ledState));
+  ws.textAll(String(ledState));
 }
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
-    AwsFrameInfo *info = (AwsFrameInfo *)arg;
-    if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
-    {
-        data[len] = 0;
-        String message = String((char *)data);
-        
-        if (message == "toggle")
-        {
-            ledState = !ledState;
-            digitalWrite(LED_PIN, ledState);
-            ws.textAll(String(ledState));
-        }
-        else if (message == "get-buffer")
-        {
-            // Send current serial buffer to the client
-            if (serialBuffer.length() > 0)
-            {
-                ws.textAll(serialBuffer);
-            }
-        }
-    }
-}
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+    data[len] = 0;
+    String message = String((char *)data);
 
+    if (message == "toggle")
+    {
+      ledState = !ledState;
+      digitalWrite(LED_PIN, ledState);
+      ws.textAll(String(ledState));
+    }
+    else if (message == "get-buffer")
+    {
+      // Send current serial buffer to the client
+      if (serialBuffer.length() > 0)
+      {
+        ws.textAll(serialBuffer);
+      }
+    }
+  }
+}
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
              void *arg, uint8_t *data, size_t len)
@@ -94,31 +92,8 @@ void initWebServerWithWebSocket()
   // WebSocket handler
   ws.onEvent(onEvent);
   server.addHandler(&ws);
-
-  // API endpoints
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/index.html", "text/html");
-  });
-  server.on("/status", HTTP_GET, handleStatus);
-  server.on("/scan-networks", HTTP_GET, handleScanNetworks);
-  server.on("/get-pid", HTTP_GET, handleGetPID);
-  server.on("/clear-console", HTTP_GET, handleClearConsole);
-
-  server.on("/save-wifi", HTTP_POST, handleSaveWiFi);
-  server.on("/control", HTTP_POST, handleControl);
-  server.on("/set-pid", HTTP_POST, handleSetPID);
-  server.on("/calibrate", HTTP_POST, handleCalibrate);
-
-  // Serve other static files
-  server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/script.js", "application/javascript");
-  });
-  server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/styles.css", "text/css");
-  });
-  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/favicon.ico", "image/x-icon");
-  });
+  // Route handlers
+  initRoutes();
 
   // Start server
   server.begin();
@@ -164,7 +139,8 @@ void addToSerialBuffer(String message)
   }
 
   // Broadcast to WebSocket clients (only if queue not full)
-  if (ws.availableForWriteAll()) {
+  if (ws.availableForWriteAll())
+  {
     ws.textAll(timestampedMessage);
   }
 }
@@ -179,7 +155,8 @@ void sendAngleData(float angle, float target)
   jsonData += "}";
 
   // Only send if WebSocket can accept messages (prevents queue overflow)
-  if (ws.availableForWriteAll()) {
+  if (ws.availableForWriteAll())
+  {
     ws.textAll(jsonData);
   }
 }
@@ -203,7 +180,7 @@ void handleStatus(AsyncWebServerRequest *request)
     json += "\"connected\":true,";
     json += "\"ssid\":\"" + WiFi.SSID() + "\",";
     json += "\"ip\":\"" + localIP.toString() + "\"";
-    Serial.println("STA Mode - IP: " + localIP.toString());
+    // Serial.println("STA Mode - IP: " + localIP.toString());
   }
   else
   {
@@ -379,4 +356,31 @@ void handleClearConsole(AsyncWebServerRequest *request)
 {
   serialBuffer = "";
   request->send(200, "application/json", "{\"success\":true,\"message\":\"Console cleared\"}");
+}
+
+void initRoutes()
+{
+
+  // API endpoints
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(LittleFS, "/index.html", "text/html"); });
+  server.on("/status", HTTP_GET, handleStatus);
+  server.on("/scan-networks", HTTP_GET, handleScanNetworks);
+  server.on("/get-pid", HTTP_GET, handleGetPID);
+  server.on("/clear-console", HTTP_GET, handleClearConsole);
+
+  server.on("/save-wifi", HTTP_POST, handleSaveWiFi);
+  server.on("/control", HTTP_POST, handleControl);
+  server.on("/set-pid", HTTP_POST, handleSetPID);
+  server.on("/calibrate", HTTP_POST, handleCalibrate);
+
+  // Serve other static files
+  server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(LittleFS, "/script.js", "application/javascript"); });
+  server.on("/plotter.js", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(LittleFS, "/plotter.js", "application/javascript"); });
+  server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(LittleFS, "/styles.css", "text/css"); });
+  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(LittleFS, "/favicon.ico", "image/x-icon"); });
 }

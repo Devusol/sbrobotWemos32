@@ -98,17 +98,17 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           if (param == "kp")
           {
             balancePID.kp += delta;
-            balancePID.kp = constrain(balancePID.kp, 0.0, 20.0);
+            balancePID.kp = constrain(balancePID.kp, 0.0, 500.0);
           }
           else if (param == "ki")
           {
             balancePID.ki += delta;
-            balancePID.ki = constrain(balancePID.ki, 0.0, 10.0);
+            balancePID.ki = constrain(balancePID.ki, 0.0, 100.0);
           }
           else if (param == "kd")
           {
             balancePID.kd += delta;
-            balancePID.kd = constrain(balancePID.kd, 0.0, 5.0);
+            balancePID.kd = constrain(balancePID.kd, 0.0, 100.0);
           }
           SERIAL_PRINTLN("PID adjusted via WS: " + param + " by " + String(delta, 3));
           // Send back updated PID values
@@ -208,6 +208,9 @@ void scanNetworks()
 // Add message to serial buffer and broadcast to WebSocket clients
 void addToSerialBuffer(String message)
 {
+  // Only proceed if there are connected clients
+  if (ws.count() == 0) return;
+
   // Add timestamp
   String timestampedMessage = "[" + String(millis()) + "] " + message + "\n";
 
@@ -231,6 +234,9 @@ void addToSerialBuffer(String message)
 // Send angle data to WebSocket clients
 void sendAngleData(float angle, float target)
 {
+  // Only send if there are connected clients
+  if (ws.count() == 0) return;
+
   String jsonData = "{";
   jsonData += "\"type\":\"angle\",";
   jsonData += "\"current\":" + String(angle, 2) + ",";

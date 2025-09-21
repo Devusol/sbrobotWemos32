@@ -47,6 +47,7 @@ function initWebSocket() {
                     alert('Failed to update PID values: ' + (jsonData.message || 'Unknown error'));
                 }
             } else if (jsonData.type === 'target-angle') {
+                console.log('Received target angle:', jsonData.value);
                 currentTargetAngle = jsonData.value;
                 document.getElementById('targetAngleValue').textContent = currentTargetAngle.toFixed(2);
             }

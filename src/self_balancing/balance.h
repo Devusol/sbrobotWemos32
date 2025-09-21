@@ -30,4 +30,7 @@ void adjustPIDGainsFromSerial(char input);
 // Global PID controller access
 extern PIDController balancePID;
 
+// Function to send angle data via WebSocket
+extern void sendAngleData(float angle, float target);
+
 #endif

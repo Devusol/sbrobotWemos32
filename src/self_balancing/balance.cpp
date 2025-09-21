@@ -5,6 +5,9 @@
 // PID controller for balancing
 PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
 
+// Counter for periodic angle data sending
+static int angleSendCounter = 0;
+
 // Initialize balancing
 void initBalance()
 {
@@ -62,7 +65,13 @@ void balanceRobot()
 
 
     float angle = calculateAngle();
-    sendAngleData(angle, params.targetAngle);
+    
+    // Send angle data to WebSocket clients periodically (every 20 loops ~100ms)
+    angleSendCounter++;
+    if (angleSendCounter >= 20) {
+        sendAngleData(angle, params.targetAngle);
+        angleSendCounter = 0;
+    }
     
 
     // angle = round(angle); // Round to nearest whole degree to reduce noise
@@ -103,7 +112,7 @@ void balanceRobot()
     int rightSpeed = balancePID.baseSpeed + pidOutput;
 
     // Stop motors if angle is too extreme (fallen over)
-    if (angle > 160.0)
+    if (angle > 140.0)
     {
         // Serial.println("Stop fell backward");
         stopMovement();
@@ -111,7 +120,7 @@ void balanceRobot()
         leftSpeed = 0;
         rightSpeed = 0;
     }
-    if (angle < 20.0)
+    if (angle < 40.0)
     {
         // Serial.println("Stop fell forward");
         stopMovement();

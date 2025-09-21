@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "gyro/gyro.h"
 #include "wifi/wifi_manager.h"
+#include "auto_tune.h"
 
 // PID controller structure
 struct PIDController
@@ -26,6 +27,12 @@ void initBalance();
 float updatePID(PIDController &pid, float error, float deadBand);
 void balanceRobot();
 void adjustPIDGainsFromSerial(char input);
+
+// Auto-tuning integration functions
+void handleAutoTune();
+void startAutoTuneFromSerial();
+void stopAutoTuneFromSerial();
+void applyAutoTuneFromSerial();
 
 // Global PID controller access
 extern PIDController balancePID;

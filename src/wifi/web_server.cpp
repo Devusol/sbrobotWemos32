@@ -140,6 +140,39 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           json += "}";
           ws.textAll(json);
         }
+        else if (type == "start-autotune")
+        {
+          startAutoTuneFromSerial();
+          String response = "{\"type\":\"autotune-started\",\"success\":true}";
+          ws.textAll(response);
+        }
+        else if (type == "stop-autotune")
+        {
+          stopAutoTuneFromSerial();
+          String response = "{\"type\":\"autotune-stopped\",\"success\":true}";
+          ws.textAll(response);
+        }
+        else if (type == "apply-autotune")
+        {
+          applyAutoTuneFromSerial();
+          String response = "{\"type\":\"autotune-applied\",\"success\":true}";
+          ws.textAll(response);
+        }
+        else if (type == "get-autotune-status")
+        {
+          String json = "{";
+          json += "\"type\":\"autotune-status\",";
+          json += "\"active\":" + String(isAutoTuneActive() ? "true" : "false") + ",";
+          json += "\"state\":" + String((int)autoTuneState) + ",";
+          json += "\"hasResults\":" + String(autoTuneResults.valid ? "true" : "false");
+          if (autoTuneResults.valid) {
+            json += ",\"kp\":" + String(autoTuneResults.kp, 3);
+            json += ",\"ki\":" + String(autoTuneResults.ki, 3);
+            json += ",\"kd\":" + String(autoTuneResults.kd, 3);
+          }
+          json += "}";
+          ws.textAll(json);
+        }
       }
     }
   }

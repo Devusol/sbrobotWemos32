@@ -120,6 +120,22 @@
                             </div>
                         </div>
 
+                        <!-- Auto-Tuning Panel -->
+                        <div class="control-panel">
+                            <h4>PID Auto-Tuning</h4>
+                            <div class="alert alert-warning">
+                                <strong>Warning:</strong> Auto-tuning will cause the robot to oscillate. Ensure the robot is on a stable surface and keep clear during the process.
+                            </div>
+                            <div class="text-center mb-3">
+                                <button id="startAutoTune" class="btn btn-primary me-2">Start Auto-Tune</button>
+                                <button id="stopAutoTune" class="btn btn-danger me-2">Stop Auto-Tune</button>
+                                <button id="applyAutoTune" class="btn btn-success">Apply Results</button>
+                            </div>
+                            <div id="autoTuneStatus" class="alert alert-info">
+                                Auto-tuning not active
+                            </div>
+                        </div>
+
                         <!-- Robot Control Panel -->
                         <div class="control-panel">
                             <h4>Robot Control</h4>

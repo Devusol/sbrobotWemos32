@@ -27,6 +27,8 @@ function initWebSocket() {
         // Request current PID values
         ws.send(JSON.stringify({type: "get-pid"}));
         ws.send(JSON.stringify({type: "get-target-angle"}));
+        // Request auto-tune status
+        ws.send(JSON.stringify({type: "get-autotune-status"}));
     };
 
     ws.onmessage = function(event) {
@@ -50,6 +52,26 @@ function initWebSocket() {
                 console.log('Received target angle:', jsonData.value);
                 currentTargetAngle = jsonData.value;
                 document.getElementById('targetAngleValue').textContent = currentTargetAngle.toFixed(2);
+            } else if (jsonData.type === 'autotune-started') {
+                document.getElementById('autoTuneStatus').className = 'alert alert-warning';
+                document.getElementById('autoTuneStatus').textContent = 'Auto-tuning in progress...';
+                document.getElementById('startAutoTune').disabled = true;
+                document.getElementById('stopAutoTune').disabled = false;
+                document.getElementById('applyAutoTune').disabled = true;
+            } else if (jsonData.type === 'autotune-stopped') {
+                document.getElementById('autoTuneStatus').className = 'alert alert-info';
+                document.getElementById('autoTuneStatus').textContent = 'Auto-tuning stopped';
+                document.getElementById('startAutoTune').disabled = false;
+                document.getElementById('stopAutoTune').disabled = true;
+                document.getElementById('applyAutoTune').disabled = false;
+            } else if (jsonData.type === 'autotune-applied') {
+                document.getElementById('autoTuneStatus').className = 'alert alert-success';
+                document.getElementById('autoTuneStatus').textContent = 'Auto-tuning results applied successfully';
+                document.getElementById('startAutoTune').disabled = false;
+                document.getElementById('stopAutoTune').disabled = true;
+                document.getElementById('applyAutoTune').disabled = true;
+            } else if (jsonData.type === 'autotune-status') {
+                updateAutoTuneStatusDisplay(jsonData);
             }
         } catch (e) {
             // Not JSON, treat as serial data
@@ -100,6 +122,11 @@ function setupEventListeners() {
     // document.getElementById('updatePID').addEventListener('click', updatePID);
     document.getElementById('calibrate').addEventListener('click', calibrateSensors);
     document.getElementById('resetPID').addEventListener('click', resetPID);
+
+    // Auto-tuning buttons
+    document.getElementById('startAutoTune').addEventListener('click', startAutoTune);
+    document.getElementById('stopAutoTune').addEventListener('click', stopAutoTune);
+    document.getElementById('applyAutoTune').addEventListener('click', applyAutoTune);
 
     // Robot control buttons
     document.getElementById('forward').addEventListener('click', () => sendCommand('forward'));
@@ -196,4 +223,50 @@ function scrollToBottom() {
     if (consoleElement) {
         consoleElement.scrollTop = consoleElement.scrollHeight;
     }
+}
+
+// Auto-tuning functions
+function startAutoTune() {
+    if (confirm('Auto-tuning will cause the robot to oscillate for several seconds. Make sure the robot is on a stable surface and keep clear. Continue?')) {
+        ws.send(JSON.stringify({type: "start-autotune"}));
+        updateAutoTuneStatus();
+    }
+}
+
+function stopAutoTune() {
+    ws.send(JSON.stringify({type: "stop-autotune"}));
+    updateAutoTuneStatus();
+}
+
+function applyAutoTune() {
+    ws.send(JSON.stringify({type: "apply-autotune"}));
+    updateAutoTuneStatus();
+}
+
+function updateAutoTuneStatusDisplay(data) {
+    let statusText = '';
+    let statusClass = 'alert-info';
+
+    if (data.active) {
+        statusText = 'Auto-tuning active';
+        statusClass = 'alert-warning';
+        document.getElementById('startAutoTune').disabled = true;
+        document.getElementById('stopAutoTune').disabled = false;
+        document.getElementById('applyAutoTune').disabled = true;
+    } else if (data.hasResults) {
+        statusText = `Auto-tuning complete. Results: Kp=${data.kp?.toFixed(3)}, Ki=${data.ki?.toFixed(3)}, Kd=${data.kd?.toFixed(3)}`;
+        statusClass = 'alert-success';
+        document.getElementById('startAutoTune').disabled = false;
+        document.getElementById('stopAutoTune').disabled = true;
+        document.getElementById('applyAutoTune').disabled = false;
+    } else {
+        statusText = 'Auto-tuning not active';
+        statusClass = 'alert-info';
+        document.getElementById('startAutoTune').disabled = false;
+        document.getElementById('stopAutoTune').disabled = true;
+        document.getElementById('applyAutoTune').disabled = true;
+    }
+
+    document.getElementById('autoTuneStatus').className = `alert ${statusClass}`;
+    document.getElementById('autoTuneStatus').textContent = statusText;
 }

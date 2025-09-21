@@ -1,6 +1,7 @@
 #include "balance.h"
 #include "control/input_controller.h"
 #include "wifi/wifi_manager.h"
+#include "auto_tune.h"
 
 // PID controller for balancing
 PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
@@ -18,6 +19,9 @@ void initBalance()
     currentAngle = atan2(-initialAccel.x, initialAccel.z) * 180.0 / PI;
     currentAngle = fmod(currentAngle + 360.0, 360.0);
     lastAngleTime = millis();
+
+    // Initialize auto-tuning
+    initAutoTune();
 }
 
 // Update PID controller
@@ -63,6 +67,8 @@ void balanceRobot()
 {
     ControlParams params = handleTargetAngle(0, 0);
 
+    // Handle auto-tuning if active
+    handleAutoTune();
 
     float angle = calculateAngle();
     
@@ -189,4 +195,51 @@ void adjustPIDGainsFromSerial(char qawsedrf)
     balancePID.baseSpeed = baseSpeed;
 
     Serial.println("Adjusted PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
+}
+
+// Handle auto-tuning updates during balancing
+void handleAutoTune() {
+    if (isAutoTuneActive()) {
+        updateAutoTune();
+    }
+}
+
+// Start auto-tuning from serial command
+void startAutoTuneFromSerial() {
+    if (isAutoTuneActive()) {
+        Serial.println("Auto-tuning already in progress");
+        return;
+    }
+
+    Serial.println("Starting PID auto-tuning...");
+    Serial.println("Make sure the robot is on a stable surface and not moving");
+    Serial.println("The robot will oscillate during tuning - keep clear!");
+    delay(2000); // Give user time to prepare
+
+    startAutoTune();
+}
+
+// Stop auto-tuning from serial command
+void stopAutoTuneFromSerial() {
+    if (!isAutoTuneActive()) {
+        Serial.println("Auto-tuning not active");
+        return;
+    }
+
+    stopAutoTune();
+}
+
+// Apply auto-tuning results from serial command
+void applyAutoTuneFromSerial() {
+    if (isAutoTuneActive()) {
+        Serial.println("Cannot apply results while auto-tuning is active");
+        return;
+    }
+
+    if (!autoTuneResults.valid) {
+        Serial.println("No valid auto-tuning results available");
+        return;
+    }
+
+    applyAutoTuneResults();
 }

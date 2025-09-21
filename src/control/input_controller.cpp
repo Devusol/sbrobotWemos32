@@ -1,4 +1,5 @@
 #include "input_controller.h"
+#include "self_balancing/balance.h"
 
 // Onboard LED pin for testing (GPIO 2 on most ESP32 boards)
 #define LED_PIN 2
@@ -91,6 +92,15 @@ void handleKeyboardInputs()
             break;
         case '-':
             setSpeed(currentSpeed - 10);
+            break;
+        case 'u':
+            startAutoTuneFromSerial();
+            break;
+        case 'i':
+            stopAutoTuneFromSerial();
+            break;
+        case 'o':
+            applyAutoTuneFromSerial();
             break;
         default:
             adjustPIDGainsFromSerial(key);

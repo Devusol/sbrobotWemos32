@@ -1,6 +1,7 @@
 #include "wifi_manager.h"
 #include "control/input_controller.h"
 #include "self_balancing/balance.h"
+#include <ArduinoJson.h>
 
 bool ledState = 0;
 #define LED_PIN 2
@@ -57,6 +58,38 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
       if (serialBuffer.length() > 0)
       {
         ws.textAll(serialBuffer);
+      }
+    }
+    else
+    {
+      // Try to parse as JSON
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, message);
+      if (!error)
+      {
+        String type = doc["type"];
+        if (type == "get-pid")
+        {
+          String json = "{";
+          json += "\"type\":\"pid-values\",";
+          json += "\"kp\":" + String(balancePID.kp, 3) + ",";
+          json += "\"ki\":" + String(balancePID.ki, 3) + ",";
+          json += "\"kd\":" + String(balancePID.kd, 3);
+          json += "}";
+          ws.textAll(json);
+        }
+        else if (type == "set-pid")
+        {
+          float kp = doc["kp"];
+          float ki = doc["ki"];
+          float kd = doc["kd"];
+          balancePID.kp = kp;
+          balancePID.ki = ki;
+          balancePID.kd = kd;
+          SERIAL_PRINTLN("PID values updated via WS: Kp=" + String(kp, 3) + ", Ki=" + String(ki, 3) + ", Kd=" + String(kd, 3));
+          String response = "{\"type\":\"pid-updated\",\"success\":true}";
+          ws.textAll(response);
+        }
       }
     }
   }

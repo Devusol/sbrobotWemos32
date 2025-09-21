@@ -7,7 +7,6 @@ let consoleElement;
 
 // Initialize the page
 window.onload = function() {
-    loadPIDValues();
     setupEventListeners();
     statusInterval = setInterval(updateStatus, 5000); // Update status every 5 seconds
     initWebSocket();
@@ -24,6 +23,8 @@ function initWebSocket() {
         consoleElement.textContent = 'WebSocket connected. Waiting for serial data...\n';
         // Request current buffer
         ws.send('get-buffer');
+        // Request current PID values
+        ws.send(JSON.stringify({type: "get-pid"}));
     };
 
     ws.onmessage = function(event) {
@@ -32,6 +33,17 @@ function initWebSocket() {
             const jsonData = JSON.parse(data);
             if (jsonData.type === 'angle') {
                 updateAnglePlot(jsonData.current, jsonData.target);
+            } else if (jsonData.type === 'pid-values') {
+                currentPID.kp = jsonData.kp;
+                currentPID.ki = jsonData.ki;
+                currentPID.kd = jsonData.kd;
+                updatePIDDisplays();
+            } else if (jsonData.type === 'pid-updated') {
+                if (jsonData.success) {
+                    alert('PID values updated successfully!');
+                } else {
+                    alert('Failed to update PID values: ' + (jsonData.message || 'Unknown error'));
+                }
             }
         } catch (e) {
             // Not JSON, treat as serial data
@@ -57,15 +69,7 @@ function initWebSocket() {
 
 // Load current PID values from the robot
 function loadPIDValues() {
-    fetch('/get-pid')
-        .then(response => response.json())
-        .then(data => {
-            currentPID.kp = data.kp;
-            currentPID.ki = data.ki;
-            currentPID.kd = data.kd;
-            updatePIDDisplays();
-        })
-        .catch(error => console.error('Error loading PID values:', error));
+    // Now handled via WebSocket
 }
 
 // Update PID value displays
@@ -111,25 +115,7 @@ function setupEventListeners() {
 
 // Update PID values on the robot
 function updatePID() {
-    fetch('/set-pid', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `kp=${currentPID.kp}&ki=${currentPID.ki}&kd=${currentPID.kd}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('PID values updated successfully!');
-        } else {
-            alert('Failed to update PID values: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error updating PID:', error);
-        alert('Error updating PID values');
-    });
+    ws.send(JSON.stringify({type: "set-pid", kp: currentPID.kp, ki: currentPID.ki, kd: currentPID.kd}));
 }
 
 // Calibrate sensors

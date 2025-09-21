@@ -26,6 +26,7 @@ function initWebSocket() {
         ws.send('get-buffer');
         // Request current PID values
         ws.send(JSON.stringify({type: "get-pid"}));
+        ws.send(JSON.stringify({type: "get-target-angle"}));
     };
 
     ws.onmessage = function(event) {
@@ -95,7 +96,7 @@ function adjustTargetAngle(delta) {
 // Setup event listeners
 function setupEventListeners() {
     // PID buttons
-    document.getElementById('updatePID').addEventListener('click', updatePID);
+    // document.getElementById('updatePID').addEventListener('click', updatePID);
     document.getElementById('calibrate').addEventListener('click', calibrateSensors);
     document.getElementById('resetPID').addEventListener('click', resetPID);
 

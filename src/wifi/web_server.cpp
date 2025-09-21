@@ -10,6 +10,7 @@ bool ledState = 0;
 extern GyroOffsets gyroOffsets;
 extern AccelOffsets accelOffsets;
 extern float currentAngle;
+extern float targetAngle;
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -119,16 +120,23 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           json += "}";
           ws.textAll(json);
         }
+        else if (type == "get-target-angle")
+        {
+          String json = "{";
+          json += "\"type\":\"target-angle\",";
+          json += "\"value\":" + String(targetAngle, 3);
+          json += "}";
+          ws.textAll(json);
+        }
         else if (type == "adjust-target-angle")
         {
           float delta = doc["delta"];
-          currentAngle += delta;
-          currentAngle = constrain(currentAngle, 70.0, 110.0); // Limit target angle
-          SERIAL_PRINTLN("Target angle adjusted via WS by " + String(delta, 3) + " to " + String(currentAngle, 3));
+          handleTargetAngle(delta, 0);
+          SERIAL_PRINTLN("Target angle adjusted via WS by " + String(delta, 3) + " to " + String(targetAngle, 3));
           // Send back updated target angle
           String json = "{";
           json += "\"type\":\"target-angle\",";
-          json += "\"value\":" + String(currentAngle, 3);
+          json += "\"value\":" + String(targetAngle, 3);
           json += "}";
           ws.textAll(json);
         }

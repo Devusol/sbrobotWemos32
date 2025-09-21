@@ -20,6 +20,8 @@ const int LEDC_RESOLUTION = 8; // 0-255
 
 // Current speed (0-100)
 static int currentSpeed = 0;
+float targetAngle = 87.0;
+float deadBand = 0.0; // degrees
 
 // Initialize the controller
 void initController()
@@ -45,6 +47,77 @@ void initController()
 
     Serial.println("Controller initialized - LED PWM ready for testing");
 }
+
+void handleKeyboardInputs()
+{
+    while (Serial.available())
+    {
+        char key = Serial.read();
+        switch (key)
+        {
+        case 'c':
+            stopMovement();
+            delay(1000); // Small delay to ensure stop command is processed
+            calibrateAll();
+            Serial.println("Recalibrated gyro and accelerometer.");
+        case 'v':
+            targetAngle += 0.1; // Increase target angle by 0.1 degree
+            Serial.println("Target angle increased to " + String(targetAngle) + " degrees.");
+        case 'b':
+            targetAngle -= 0.1; // Decrease target angle by 0.1 degree
+            Serial.println("Target angle decreased to " + String(targetAngle) + " degrees.");
+        case 't':
+            deadBand += 1; // Increase deadband by 1 degree
+            Serial.println("Deadband increased to " + String(deadBand) + " degrees.");
+        case 'g':
+            deadBand -= 1; // Decrease deadband by 1 degree
+            if (deadBand < 0)
+                deadBand = 0; // Prevent negative deadband
+            Serial.println("Deadband decreased to " + String(deadBand) + " degrees.");
+        case 'f':
+            moveForward();
+            break;
+        case 'l':
+            turnLeft();
+            break;
+        case 'r':
+            turnRight();
+            break;
+        case 's':
+            stopMovement();
+            break;
+        case '+':
+            setSpeed(currentSpeed + 10);
+            break;
+        case '-':
+            setSpeed(currentSpeed - 10);
+            break;
+        default:
+            adjustPIDGainsFromSerial(key);
+        }
+    }
+}
+
+ControlParams handleTargetAngle(float targetDelta = 0, float deadbandDelta = 0)
+{
+    ControlParams params;
+    if (targetDelta != 0)
+    {
+        targetAngle += targetDelta;
+        targetAngle = constrain(targetAngle, 70.0, 110.0); // Limit target angle
+        Serial.println("Target angle adjusted to " + String(targetAngle) + " degrees.");
+    }
+    params.targetAngle = targetAngle;
+    if (deadbandDelta != 0)
+    {
+        deadBand += deadbandDelta;
+        deadBand = constrain(deadBand, 0.0, 10.0); // Limit deadband
+        Serial.println("Deadband adjusted to " + String(deadBand) + " degrees.");
+    }
+    params.deadBand = deadBand;
+    return params;
+}
+
 
 // Handle robot commands (called from HTTP POST handler)
 void handleRobotCommand(String command, String value)

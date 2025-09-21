@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "gyro/gyro.h"
+#include "wifi/wifi_manager.h"
 
 // PID controller structure
 struct PIDController
@@ -23,7 +24,7 @@ extern AccelOffsets accelOffsets;
 // Function declarations
 void initBalance();
 float updatePID(PIDController &pid, float error, float deadBand);
-void balanceRobot(float angle, float deadBand);
+void balanceRobot();
 void adjustPIDGainsFromSerial(char input);
 
 // Global PID controller access

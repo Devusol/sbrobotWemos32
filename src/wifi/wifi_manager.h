@@ -8,6 +8,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+
 // Serial capturing functionality
 extern String serialBuffer;
 extern const int MAX_SERIAL_BUFFER;
@@ -36,5 +37,6 @@ void switchToAPMode();
 void onWiFiDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
 void initWebServerWithWebSocket();
 void scanNetworks();
+void sendAngleData(float angle, float target);
 
 #endif

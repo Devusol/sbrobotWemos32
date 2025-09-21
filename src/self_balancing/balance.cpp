@@ -1,5 +1,6 @@
 #include "balance.h"
 #include "control/input_controller.h"
+#include "wifi/wifi_manager.h"
 
 // PID controller for balancing
 PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
@@ -55,17 +56,21 @@ float updatePID(PIDController &pid, float error, float deadBand)
 }
 
 // Balance the robot
-void balanceRobot(float targetAngle, float deadBand)
+void balanceRobot()
 {
+    ControlParams params = handleTargetAngle(0, 0);
+
 
     float angle = calculateAngle();
+    sendAngleData(angle, params.targetAngle);
+    
 
     // angle = round(angle); // Round to nearest whole degree to reduce noise
     // Serial.printf("Kp: %.3f, Ki: %.3f, Kd: %.3f\n", balancePID.kp, balancePID.ki, balancePID.kd);
 
     // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
 
-    float error = angle - targetAngle; // Positive when tilted forward
+    float error = angle - params.targetAngle; // Positive when tilted forward
     // Serial.printf("Angle: %.2f, Error: %.2f\n", angle, error);
     // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, targetAngle, error);
     // Serial.print(">Angle:");
@@ -74,15 +79,15 @@ void balanceRobot(float targetAngle, float deadBand)
     // Serial.println(targetAngle);
     // Serial.print(">Error:");
     // Serial.println(error);
-
+   
     // Apply deadband to reduce noise
-    if (abs(error) < deadBand)
+    if (abs(error) < params.deadBand)
     {
         error = 0;
     }
 
     // Update PID
-    float pidOutput = updatePID(balancePID, error, deadBand);
+    float pidOutput = updatePID(balancePID, error, params.deadBand);
 
     // Low-pass filter the PID output to reduce jitter
     static float filteredPidOutput = 0.0;

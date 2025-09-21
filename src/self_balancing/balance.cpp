@@ -1,8 +1,12 @@
 #include "balance.h"
 #include "control/input_controller.h"
+#include "wifi/wifi_manager.h"
 
 // PID controller for balancing
 PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
+
+// Counter for periodic angle data sending
+static int angleSendCounter = 0;
 
 // Initialize balancing
 void initBalance()
@@ -55,17 +59,27 @@ float updatePID(PIDController &pid, float error, float deadBand)
 }
 
 // Balance the robot
-void balanceRobot(float targetAngle, float deadBand)
+void balanceRobot()
 {
+    ControlParams params = handleTargetAngle(0, 0);
+
 
     float angle = calculateAngle();
+    
+    // Send angle data to WebSocket clients periodically (every 20 loops ~100ms)
+    angleSendCounter++;
+    if (angleSendCounter >= 20) {
+        sendAngleData(angle, params.targetAngle);
+        angleSendCounter = 0;
+    }
+    
 
     // angle = round(angle); // Round to nearest whole degree to reduce noise
-    
+    // Serial.printf("Kp: %.3f, Ki: %.3f, Kd: %.3f\n", balancePID.kp, balancePID.ki, balancePID.kd);
 
     // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
 
-    float error = angle - targetAngle; // Positive when tilted forward
+    float error = angle - params.targetAngle; // Positive when tilted forward
     // Serial.printf("Angle: %.2f, Error: %.2f\n", angle, error);
     // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, targetAngle, error);
     // Serial.print(">Angle:");
@@ -74,15 +88,15 @@ void balanceRobot(float targetAngle, float deadBand)
     // Serial.println(targetAngle);
     // Serial.print(">Error:");
     // Serial.println(error);
-
+   
     // Apply deadband to reduce noise
-    if (abs(error) < deadBand)
+    if (abs(error) < params.deadBand)
     {
         error = 0;
     }
 
     // Update PID
-    float pidOutput = updatePID(balancePID, error, deadBand);
+    float pidOutput = updatePID(balancePID, error, params.deadBand);
 
     // Low-pass filter the PID output to reduce jitter
     static float filteredPidOutput = 0.0;
@@ -98,7 +112,7 @@ void balanceRobot(float targetAngle, float deadBand)
     int rightSpeed = balancePID.baseSpeed + pidOutput;
 
     // Stop motors if angle is too extreme (fallen over)
-    if (angle > 160.0)
+    if (angle > 140.0)
     {
         // Serial.println("Stop fell backward");
         stopMovement();
@@ -106,7 +120,7 @@ void balanceRobot(float targetAngle, float deadBand)
         leftSpeed = 0;
         rightSpeed = 0;
     }
-    if (angle < 20.0)
+    if (angle < 40.0)
     {
         // Serial.println("Stop fell forward");
         stopMovement();
@@ -118,7 +132,7 @@ void balanceRobot(float targetAngle, float deadBand)
     setMotorSpeeds(leftSpeed, rightSpeed);
 }
 
-void adjustPIDGains(char qawsedrf)
+void adjustPIDGainsFromSerial(char qawsedrf)
 {
     Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));
 

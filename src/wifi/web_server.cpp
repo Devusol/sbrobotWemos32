@@ -1,6 +1,7 @@
 #include "wifi_manager.h"
 #include "control/input_controller.h"
 #include "self_balancing/balance.h"
+#include <ArduinoJson.h>
 
 bool ledState = 0;
 #define LED_PIN 2
@@ -9,6 +10,7 @@ bool ledState = 0;
 extern GyroOffsets gyroOffsets;
 extern AccelOffsets accelOffsets;
 extern float currentAngle;
+extern float targetAngle;
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -57,6 +59,87 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
       if (serialBuffer.length() > 0)
       {
         ws.textAll(serialBuffer);
+      }
+    }
+    else
+    {
+      // Try to parse as JSON
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, message);
+      if (!error)
+      {
+        String type = doc["type"];
+        if (type == "get-pid")
+        {
+          String json = "{";
+          json += "\"type\":\"pid-values\",";
+          json += "\"kp\":" + String(balancePID.kp, 3) + ",";
+          json += "\"ki\":" + String(balancePID.ki, 3) + ",";
+          json += "\"kd\":" + String(balancePID.kd, 3);
+          json += "}";
+          ws.textAll(json);
+        }
+        else if (type == "set-pid")
+        {
+          float kp = doc["kp"];
+          float ki = doc["ki"];
+          float kd = doc["kd"];
+          balancePID.kp = kp;
+          balancePID.ki = ki;
+          balancePID.kd = kd;
+          SERIAL_PRINTLN("PID values updated via WS: Kp=" + String(kp, 3) + ", Ki=" + String(ki, 3) + ", Kd=" + String(kd, 3));
+          String response = "{\"type\":\"pid-updated\",\"success\":true}";
+          ws.textAll(response);
+        }
+        else if (type == "adjust-pid")
+        {
+          String param = doc["param"];
+          float delta = doc["delta"];
+          if (param == "kp")
+          {
+            balancePID.kp += delta;
+            balancePID.kp = constrain(balancePID.kp, 0.0, 500.0);
+          }
+          else if (param == "ki")
+          {
+            balancePID.ki += delta;
+            balancePID.ki = constrain(balancePID.ki, 0.0, 100.0);
+          }
+          else if (param == "kd")
+          {
+            balancePID.kd += delta;
+            balancePID.kd = constrain(balancePID.kd, 0.0, 100.0);
+          }
+          SERIAL_PRINTLN("PID adjusted via WS: " + param + " by " + String(delta, 3));
+          // Send back updated PID values
+          String json = "{";
+          json += "\"type\":\"pid-values\",";
+          json += "\"kp\":" + String(balancePID.kp, 3) + ",";
+          json += "\"ki\":" + String(balancePID.ki, 3) + ",";
+          json += "\"kd\":" + String(balancePID.kd, 3);
+          json += "}";
+          ws.textAll(json);
+        }
+        else if (type == "get-target-angle")
+        {
+          String json = "{";
+          json += "\"type\":\"target-angle\",";
+          json += "\"value\":" + String(targetAngle, 3);
+          json += "}";
+          ws.textAll(json);
+        }
+        else if (type == "adjust-target-angle")
+        {
+          float delta = doc["delta"];
+          handleTargetAngle(delta, 0);
+          SERIAL_PRINTLN("Target angle adjusted via WS by " + String(delta, 3) + " to " + String(targetAngle, 3));
+          // Send back updated target angle
+          String json = "{";
+          json += "\"type\":\"target-angle\",";
+          json += "\"value\":" + String(targetAngle, 3);
+          json += "}";
+          ws.textAll(json);
+        }
       }
     }
   }
@@ -125,6 +208,9 @@ void scanNetworks()
 // Add message to serial buffer and broadcast to WebSocket clients
 void addToSerialBuffer(String message)
 {
+  // Only proceed if there are connected clients
+  if (ws.count() == 0) return;
+
   // Add timestamp
   String timestampedMessage = "[" + String(millis()) + "] " + message + "\n";
 
@@ -148,6 +234,9 @@ void addToSerialBuffer(String message)
 // Send angle data to WebSocket clients
 void sendAngleData(float angle, float target)
 {
+  // Only send if there are connected clients
+  if (ws.count() == 0) return;
+
   String jsonData = "{";
   jsonData += "\"type\":\"angle\",";
   jsonData += "\"current\":" + String(angle, 2) + ",";

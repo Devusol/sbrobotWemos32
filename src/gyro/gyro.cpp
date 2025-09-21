@@ -190,17 +190,28 @@ float calculateAngle()
     float dt = (currentTime - lastAngleTime) / 1000.0; // Convert to seconds
     lastAngleTime = currentTime;
 
+    // Low-pass filter accelerometer data to reduce motor vibration noise
+    static float filtered_ax = 0.0;
+    static float filtered_az = 0.0;
+    const float accel_filter_alpha = 0.8; // Higher value = more smoothing
+    filtered_ax = accel_filter_alpha * filtered_ax + (1 - accel_filter_alpha) * accel.x;
+    filtered_az = accel_filter_alpha * filtered_az + (1 - accel_filter_alpha) * accel.z;
+
     // Calculate angle from accelerometer (pitch angle)
     // Orientation: X down, Y right, Z forward
     // Pitch angle around Y-axis: atan2(Z, X)
-    float accelAngle = atan2(-accel.x, accel.z) * 180.0 / PI;
+    float accelAngle = atan2(-filtered_ax, filtered_az) * 180.0 / PI;
+
+    // Low-pass filter gyro rate to reduce noise
+    static float filtered_gyro_rate = 0.0;
+    float gyroRate = -gyro.y; // Y-axis for pitch rate
+    filtered_gyro_rate = accel_filter_alpha * filtered_gyro_rate + (1 - accel_filter_alpha) * gyroRate;
 
     // Integrate gyro rate to get angle change
-    float gyroRate = -gyro.y; // Y-axis for pitch rate
-    float gyroAngleChange = gyroRate * dt;
+    float gyroAngleChange = filtered_gyro_rate * dt;
 
     // Complementary filter
-    float alpha = 0.8; // Reduced alpha for faster response to accelerometer
+    float alpha = 0.85; // Slightly increased to trust gyro more due to accel noise
     currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
 
     // Normalize angle to 0-360 degrees

@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Self-Balancing Robot Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-     <script src="plotter.js"></script>
-   
+    <script src="plotter.js"></script>
+
     <style>
         .control-panel {
             background-color: #f8f9fa;
@@ -15,15 +16,18 @@
             padding: 20px;
             margin-bottom: 20px;
         }
+
         .pid-control {
             margin-bottom: 15px;
         }
+
         .pid-value {
             font-weight: bold;
             color: #007bff;
         }
     </style>
 </head>
+
 <body class="bg-light">
     <div class="container mt-5">
         <div class="row justify-content-center">
@@ -54,38 +58,63 @@
                                 <div class="col-md-4">
                                     <div class="pid-control text-center">
                                         <label class="form-label">Proportional (Kp)</label>
-                                        Step Amt: <input type="number" id="kpInput" class="form-control"  value="1">
-                                          
+                                        <div class="input-group mb-3">
+                                            Step: <input type="number" id="kpInput" class="form-control" value="1">
+                                        </div>
                                         <div class="d-flex justify-content-center align-items-center mb-2">
-                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('kp', -0.1)">-</button>
+                                            <button class="btn btn-outline-secondary me-2"
+                                                onclick="adjustPID('kp', -parseFloat(document.getElementById('kpInput').value))">-</button>
                                             <span id="kpValue" class="pid-value fs-4 mx-3">0.000</span>
-                                             <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kp', 0.1)">+</button>
+                                            <button class="btn btn-outline-secondary ms-2"
+                                                onclick="adjustPID('kp', parseFloat(document.getElementById('kpInput').value))">+</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="pid-control text-center">
                                         <label class="form-label">Integral (Ki)</label>
+                                        <div class="input-group mb-3">
+                                            Step: <input type="number" id="kiInput" class="form-control" value="0.01">
+                                        </div>
                                         <div class="d-flex justify-content-center align-items-center mb-2">
-                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('ki', -0.01)">-</button>
+                                            <button class="btn btn-outline-secondary me-2"
+                                                onclick="adjustPID('ki', -parseFloat(document.getElementById('kiInput').value))">-</button>
                                             <span id="kiValue" class="pid-value fs-4 mx-3">0.000</span>
-                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('ki', 0.01)">+</button>
+                                            <button class="btn btn-outline-secondary ms-2"
+                                                onclick="adjustPID('ki', parseFloat(document.getElementById('kiInput').value))">+</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="pid-control text-center">
                                         <label class="form-label">Derivative (Kd)</label>
+                                        <div class="input-group mb-3">
+                                            Step: <input type="number" id="kdInput" class="form-control" value="0.01">
+                                        </div>
                                         <div class="d-flex justify-content-center align-items-center mb-2">
-                                            <button class="btn btn-outline-secondary me-2" onclick="adjustPID('kd', -0.01)">-</button>
+                                            <button class="btn btn-outline-secondary me-2"
+                                                onclick="adjustPID('kd', -parseFloat(document.getElementById('kdInput').value))">-</button>
                                             <span id="kdValue" class="pid-value fs-4 mx-3">0.000</span>
-                                            <button class="btn btn-outline-secondary ms-2" onclick="adjustPID('kd', 0.01)">+</button>
+                                            <button class="btn btn-outline-secondary ms-2"
+                                                onclick="adjustPID('kd', parseFloat(document.getElementById('kdInput').value))">+</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-center mt-3">
-                                <button id="updatePID" class="btn btn-primary me-2">Update PID Values</button>
+
+                            <div class="pid-control text-center">
+                                <label class="form-label">Target Angle</label>
+
+                                <div class="d-flex justify-content-center align-items-center mb-2">
+                                    <button class="btn btn-outline-secondary me-2"
+                                        onclick="adjustTargetAngle(-0.1)">-</button>
+                                    <span id="targetAngleValue" class="pid-value fs-4 mx-3">0.000</span>
+                                    <button class="btn btn-outline-secondary ms-2"
+                                        onclick="adjustTargetAngle(0.1)">+</button>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <!-- <button id="updatePID" class="btn btn-primary me-2">Update PID Values</button> -->
                                 <button id="calibrate" class="btn btn-warning me-2">Calibrate Sensors</button>
                                 <button id="resetPID" class="btn btn-secondary">Reset PID to Defaults</button>
                             </div>
@@ -114,12 +143,15 @@
                         <!-- Serial Console -->
                         <div class="control-panel">
                             <h4>Serial Console</h4>
-                            <div id="serialConsole" style="height: 300px; overflow-y: auto; background-color: #000; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                            <div id="serialConsole"
+                                style="height: 300px; overflow-y: auto; background-color: #000; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                                 Connecting to serial console...
                             </div>
                             <div class="mt-2">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Console</button>
-                                <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="scrollToBottom()">Scroll to Bottom</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear
+                                    Console</button>
+                                <button type="button" class="btn btn-secondary btn-sm ms-2"
+                                    onclick="scrollToBottom()">Scroll to Bottom</button>
                             </div>
                         </div>
 
@@ -130,7 +162,8 @@
         </div>
     </div>
 
-   
+
     <script src="script.js"></script>
 </body>
+
 </html>

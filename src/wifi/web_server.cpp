@@ -119,6 +119,19 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           json += "}";
           ws.textAll(json);
         }
+        else if (type == "adjust-target-angle")
+        {
+          float delta = doc["delta"];
+          currentAngle += delta;
+          currentAngle = constrain(currentAngle, 70.0, 110.0); // Limit target angle
+          SERIAL_PRINTLN("Target angle adjusted via WS by " + String(delta, 3) + " to " + String(currentAngle, 3));
+          // Send back updated target angle
+          String json = "{";
+          json += "\"type\":\"target-angle\",";
+          json += "\"value\":" + String(currentAngle, 3);
+          json += "}";
+          ws.textAll(json);
+        }
       }
     }
   }

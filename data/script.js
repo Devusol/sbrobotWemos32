@@ -1,7 +1,8 @@
 // script.js - JavaScript for Robot Control Interface with WebSocket
 
 let statusInterval;
-let currentPID = { kp: 5.0, ki: 0.0, kd: 0.5 };
+let currentPID = { kp: 0.0, ki: 0.0, kd: 0.0 };
+let currentTargetAngle = 90.0;
 let ws;
 let consoleElement;
 
@@ -44,6 +45,9 @@ function initWebSocket() {
                 } else {
                     alert('Failed to update PID values: ' + (jsonData.message || 'Unknown error'));
                 }
+            } else if (jsonData.type === 'target-angle') {
+                currentTargetAngle = jsonData.value;
+                document.getElementById('targetAngleValue').textContent = currentTargetAngle.toFixed(2);
             }
         } catch (e) {
             // Not JSON, treat as serial data
@@ -82,6 +86,10 @@ function updatePIDDisplays() {
 // Adjust PID values with buttons
 function adjustPID(param, delta) {
     ws.send(JSON.stringify({type: "adjust-pid", param: param, delta: delta}));
+}
+
+function adjustTargetAngle(delta) {
+    ws.send(JSON.stringify({type: "adjust-target-angle", delta: delta}));
 }
 
 // Setup event listeners

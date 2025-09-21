@@ -61,7 +61,7 @@ void balanceRobot(float targetAngle, float deadBand)
     float angle = calculateAngle();
 
     // angle = round(angle); // Round to nearest whole degree to reduce noise
-    Serial.printf("Kp: %.3f, Ki: %.3f, Kd: %.3f\n", balancePID.kp, balancePID.ki, balancePID.kd);
+    // Serial.printf("Kp: %.3f, Ki: %.3f, Kd: %.3f\n", balancePID.kp, balancePID.ki, balancePID.kd);
 
     // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
 

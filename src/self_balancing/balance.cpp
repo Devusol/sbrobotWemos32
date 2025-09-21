@@ -2,7 +2,7 @@
 #include "control/input_controller.h"
 
 // PID controller for balancing
-PIDController balancePID = {0.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
+PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
 
 // Initialize balancing
 void initBalance()
@@ -17,7 +17,7 @@ void initBalance()
 }
 
 // Update PID controller
-float updatePID(PIDController &pid, float error)
+float updatePID(PIDController &pid, float error, float deadBand)
 {
     unsigned long currentTime = millis();
     float dt = (currentTime - pid.lastTime) / 1000.0;
@@ -32,8 +32,19 @@ float updatePID(PIDController &pid, float error)
     pid.integral = constrain(pid.integral, -100, 100);
     float iTerm = pid.ki * pid.integral;
 
+    // Reset integral when error is small to prevent buildup
+    if (abs(error) < deadBand)
+    {
+        pid.integral = 0;
+        iTerm = 0;
+    }
+
     // Derivative
     float derivative = (error - pid.previousError) / dt;
+    // Low-pass filter the derivative to reduce noise amplification
+    static float filteredDerivative = 0.0;
+    filteredDerivative = 0.9 * filteredDerivative + 0.1 * derivative;
+    derivative = filteredDerivative;
     float dTerm = pid.kd * derivative;
     pid.previousError = error;
 
@@ -46,15 +57,23 @@ float updatePID(PIDController &pid, float error)
 // Balance the robot
 void balanceRobot(float targetAngle, float deadBand)
 {
- 
+
     float angle = calculateAngle();
-    angle = round(angle); // Round to nearest whole degree to reduce noise
-    // Serial.printf("Current Angle: %.2f, Target Angle: %.2f\n", angle, targetAngle);
+
+    // angle = round(angle); // Round to nearest whole degree to reduce noise
+    
 
     // Serial.printf("Accel X: %.2f, Y: %.2f, Z: %.2f\n", accel.x, accel.y, accel.z);
 
     float error = angle - targetAngle; // Positive when tilted forward
     // Serial.printf("Angle: %.2f, Error: %.2f\n", angle, error);
+    // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, targetAngle, error);
+    // Serial.print(">Angle:");
+    // Serial.println(angle);
+    // Serial.print(">Target:");
+    // Serial.println(targetAngle);
+    // Serial.print(">Error:");
+    // Serial.println(error);
 
     // Apply deadband to reduce noise
     if (abs(error) < deadBand)
@@ -63,13 +82,38 @@ void balanceRobot(float targetAngle, float deadBand)
     }
 
     // Update PID
-    float pidOutput = updatePID(balancePID, error);
+    float pidOutput = updatePID(balancePID, error, deadBand);
+
+    // Low-pass filter the PID output to reduce jitter
+    static float filteredPidOutput = 0.0;
+    filteredPidOutput = 0.9 * filteredPidOutput + 0.1 * pidOutput;
+    pidOutput = filteredPidOutput;
+
+    // Constrain PID output to prevent excessive speeds
+    pidOutput = constrain(pidOutput, -100, 100);
 
     // Convert PID output to motor speeds
     // Base speed provides steady-state balancing torque
     int leftSpeed = balancePID.baseSpeed + pidOutput;
     int rightSpeed = balancePID.baseSpeed + pidOutput;
 
+    // Stop motors if angle is too extreme (fallen over)
+    if (angle > 160.0)
+    {
+        // Serial.println("Stop fell backward");
+        stopMovement();
+        // delay(1000); // Small delay to ensure stop command is processed
+        leftSpeed = 0;
+        rightSpeed = 0;
+    }
+    if (angle < 20.0)
+    {
+        // Serial.println("Stop fell forward");
+        stopMovement();
+        // delay(1000); // Small delay to ensure stop command is processed
+        leftSpeed = 0;
+        rightSpeed = 0;
+    }
     // Set motor speeds
     setMotorSpeeds(leftSpeed, rightSpeed);
 }
@@ -86,22 +130,28 @@ void adjustPIDGains(char qawsedrf)
     else if (qawsedrf == 's')
     {
         kp -= 0.1; // Decrease Kp
+        if (kp < 0)
+            kp = 0; // Prevent negative Kp
     }
     else if (qawsedrf == 'e')
     {
-        ki += 0.01; // Increase Ki
+        ki += 0.001; // Increase Ki
     }
     else if (qawsedrf == 'd')
     {
-        ki -= 0.01; // Decrease Ki
+        ki -= 0.001; // Decrease Ki
+        if (ki < 0)
+            ki = 0; // Prevent negative Ki
     }
     else if (qawsedrf == 'r')
     {
-        kd += 0.01; // Increase Kd
+        kd += 0.001; // Increase Kd
     }
     else if (qawsedrf == 'f')
     {
-        kd -= 0.01; // Decrease Kd
+        kd -= 0.001; // Decrease Kd
+        if (kd < 0)
+            kd = 0; // Prevent negative Kd
     }
     else if (qawsedrf == 'q')
     {

@@ -1,169 +1,202 @@
-// script.js - JavaScript for Robot Control Interface with HTTP requests
+// script.js - JavaScript for Robot Control Interface with WebSocket
 
-let eventSource;
+let statusInterval;
+let currentPID = { kp: 5.0, ki: 0.0, kd: 0.5 };
+let ws;
 let consoleElement;
-let scannedNetworks = [];
 
-// Initialize on page load
+// Initialize the page
 window.onload = function() {
-    consoleElement = document.getElementById('serialConsole');
-    initSSE();
-    loadWiFiStatus();
+    loadPIDValues();
     setupEventListeners();
+    statusInterval = setInterval(updateStatus, 5000); // Update status every 5 seconds
+    initWebSocket();
+    initAngleChart();
 };
 
-// Set up event listeners for buttons and forms
-function setupEventListeners() {
-    // WiFi form
-    document.getElementById('wifiForm').addEventListener('submit', saveWiFi);
-    document.getElementById('scanBtn').addEventListener('click', scanNetworks);
-    document.getElementById('networkSelect').addEventListener('change', function() {
-        document.getElementById('ssid').value = this.value;
-    });
+// Initialize WebSocket connection
+function initWebSocket() {
+    consoleElement = document.getElementById('serialConsole');
+    ws = new WebSocket('ws://' + window.location.host + '/ws');
 
-    // Robot control buttons
-    document.getElementById('forwardBtn').addEventListener('click', () => sendCommandWithFeedback('forward', 'forwardBtn'));
-    document.getElementById('backwardBtn').addEventListener('click', () => sendCommandWithFeedback('backward', 'backwardBtn'));
-    document.getElementById('leftBtn').addEventListener('click', () => sendCommandWithFeedback('left', 'leftBtn'));
-    document.getElementById('rightBtn').addEventListener('click', () => sendCommandWithFeedback('right', 'rightBtn'));
-    document.getElementById('stopBtn').addEventListener('click', () => sendCommandWithFeedback('stop', 'stopBtn'));
+    ws.onopen = function(event) {
+        console.log('WebSocket connected');
+        consoleElement.textContent = 'WebSocket connected. Waiting for serial data...\n';
+        // Request current buffer
+        ws.send('get-buffer');
+    };
 
-    // Speed slider
-    document.getElementById('speedSlider').addEventListener('input', function() {
-        document.getElementById('speedValue').textContent = this.value;
-        sendCommand('speed', this.value);
-    });
-}
-
-// Initialize Server-Sent Events for console
-function initSSE() {
-    eventSource = new EventSource('/events');
-    eventSource.onmessage = function(event) {
-        if (consoleElement) {
-            consoleElement.textContent += event.data;
-            consoleElement.scrollTop = consoleElement.scrollHeight;
+    ws.onmessage = function(event) {
+        const data = event.data;
+        try {
+            const jsonData = JSON.parse(data);
+            if (jsonData.type === 'angle') {
+                updateAnglePlot(jsonData.current, jsonData.target);
+            }
+        } catch (e) {
+            // Not JSON, treat as serial data
+            if (consoleElement) {
+                consoleElement.textContent += data;
+                consoleElement.scrollTop = consoleElement.scrollHeight;
+            }
         }
     };
-    eventSource.onerror = function() {
-        setTimeout(initSSE, 5000); // Reconnect after 5 seconds
+
+    ws.onclose = function(event) {
+        console.log('WebSocket disconnected');
+        if (consoleElement) {
+            consoleElement.textContent += '\nWebSocket disconnected. Reconnecting...\n';
+        }
+        setTimeout(initWebSocket, 5000);
+    };
+
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
     };
 }
 
-// Load current WiFi status
-function loadWiFiStatus() {
-    fetch('/status')
+// Load current PID values from the robot
+function loadPIDValues() {
+    fetch('/get-pid')
         .then(response => response.json())
         .then(data => {
-            updateStatusDisplay(data);
+            currentPID.kp = data.kp;
+            currentPID.ki = data.ki;
+            currentPID.kd = data.kd;
+            updatePIDDisplays();
         })
-        .catch(error => console.error('Error loading status:', error));
+        .catch(error => console.error('Error loading PID values:', error));
+}
+
+// Update PID value displays
+function updatePIDDisplays() {
+    document.getElementById('kpValue').textContent = currentPID.kp.toFixed(3);
+    document.getElementById('kiValue').textContent = currentPID.ki.toFixed(3);
+    document.getElementById('kdValue').textContent = currentPID.kd.toFixed(3);
+}
+
+// Adjust PID values with buttons
+function adjustPID(param, delta) {
+    // Apply limits
+    const limits = {
+        kp: { min: 0, max: 20 },
+        ki: { min: 0, max: 10 },
+        kd: { min: 0, max: 5 }
+    };
+
+    currentPID[param] += delta;
+    currentPID[param] = Math.max(limits[param].min, Math.min(limits[param].max, currentPID[param]));
+
+    // Round to appropriate precision
+    const precision = param === 'kp' ? 1 : 2;
+    currentPID[param] = Math.round(currentPID[param] * Math.pow(10, precision)) / Math.pow(10, precision);
+
+    updatePIDDisplays();
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // PID buttons
+    document.getElementById('updatePID').addEventListener('click', updatePID);
+    document.getElementById('calibrate').addEventListener('click', calibrateSensors);
+    document.getElementById('resetPID').addEventListener('click', resetPID);
+
+    // Robot control buttons
+    document.getElementById('forward').addEventListener('click', () => sendCommand('forward'));
+    document.getElementById('backward').addEventListener('click', () => sendCommand('backward'));
+    document.getElementById('left').addEventListener('click', () => sendCommand('left'));
+    document.getElementById('right').addEventListener('click', () => sendCommand('right'));
+    document.getElementById('stop').addEventListener('click', () => sendCommand('stop'));
+}
+
+// Update PID values on the robot
+function updatePID() {
+    fetch('/set-pid', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `kp=${currentPID.kp}&ki=${currentPID.ki}&kd=${currentPID.kd}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('PID values updated successfully!');
+        } else {
+            alert('Failed to update PID values: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating PID:', error);
+        alert('Error updating PID values');
+    });
+}
+
+// Calibrate sensors
+function calibrateSensors() {
+    if (confirm('Calibration will take about 10 seconds. Keep the robot stationary and level. Continue?')) {
+        document.getElementById('calibrate').disabled = true;
+        document.getElementById('calibrate').textContent = 'Calibrating...';
+
+        fetch('/calibrate', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Calibration completed successfully!');
+            } else {
+                alert('Calibration failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error calibrating:', error);
+            alert('Error during calibration');
+        })
+        .finally(() => {
+            document.getElementById('calibrate').disabled = false;
+            document.getElementById('calibrate').textContent = 'Calibrate Sensors';
+        });
+    }
+}
+
+// Reset PID to default values
+function resetPID() {
+    currentPID.kp = 5.0;
+    currentPID.ki = 0.0;
+    currentPID.kd = 0.5;
+    updatePIDDisplays();
+    updatePID();
+}
+
+// Send robot control commands
+function sendCommand(command) {
+    fetch('/control', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `command=${command}&value=`
+    })
+    .catch(error => console.error('Error sending command:', error));
 }
 
 // Update status display
-function updateStatusDisplay(data) {
-    const statusAlert = document.getElementById('statusAlert');
-    if (data.mode === 'AP') {
-        statusAlert.innerHTML = `<div class="alert alert-info">Status: Access Point Mode - ${data.ssid} (${data.ip})</div>`;
-    } else if (data.connected) {
-        statusAlert.innerHTML = `<div class="alert alert-success">Status: Connected to ${data.ssid} (${data.ip})</div>`;
-    } else {
-        statusAlert.innerHTML = `<div class="alert alert-warning">Status: Not Connected</div>`;
-    }
-    document.getElementById('ssid').value = data.ssid || '';
-}
-
-// Save WiFi credentials
-function saveWiFi(event) {
-    event.preventDefault();
-    const ssid = document.getElementById('ssid').value;
-    const password = document.getElementById('password').value;
-
-    fetch('/save-wifi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ssid, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        loadWiFiStatus();
-    })
-    .catch(error => console.error('Error saving WiFi:', error));
-}
-
-// Scan for networks
-function scanNetworks() {
-    document.getElementById('scanBtn').disabled = true;
-    document.getElementById('scanBtn').textContent = 'Scanning...';
-
-    fetch('/scan-networks')
+function updateStatus() {
+    fetch('/status')
         .then(response => response.json())
         .then(data => {
-            scannedNetworks = data.networks;
-            updateNetworkSelect();
-            document.getElementById('scanBtn').disabled = false;
-            document.getElementById('scanBtn').textContent = 'Scan Networks';
+            let statusHtml = "<strong>WiFi Status:</strong> ";
+            if (data.mode === "AP") {
+                statusHtml += `Access Point Mode - IP: ${data.ip}`;
+            } else if (data.connected) {
+                statusHtml += `Connected to ${data.ssid} - IP: ${data.ip}`;
+            } else {
+                statusHtml += "Not Connected";
+            }
+            document.getElementById('statusDisplay').innerHTML = statusHtml;
         })
-        .catch(error => {
-            console.error('Error scanning networks:', error);
-            document.getElementById('scanBtn').disabled = false;
-            document.getElementById('scanBtn').textContent = 'Scan Networks';
-        });
-}
-
-// Update network select dropdown
-function updateNetworkSelect() {
-    const select = document.getElementById('networkSelect');
-    select.innerHTML = '<option value="">Select from scanned networks...</option>';
-    scannedNetworks.forEach(network => {
-        const option = document.createElement('option');
-        option.value = network.ssid;
-        option.textContent = `${network.ssid} (${network.rssi}dBm) ${network.encryption}`;
-        select.appendChild(option);
-    });
-}
-
-// Send robot control command with visual feedback
-function sendCommandWithFeedback(command, buttonId) {
-    const button = document.getElementById(buttonId);
-    const originalText = button.textContent;
-    
-    // Visual feedback
-    button.textContent = 'Sending...';
-    button.disabled = true;
-    button.classList.add('btn-warning');
-    
-    sendCommand(command).finally(() => {
-        // Reset button after short delay
-        setTimeout(() => {
-            button.textContent = originalText;
-            button.disabled = false;
-            button.classList.remove('btn-warning');
-        }, 200);
-    });
-}
-
-// Send robot control command
-function sendCommand(command, value = null) {
-    const data = { command };
-    if (value !== null) data.value = value;
-
-    console.log('Sending HTTP command:', data);
-
-    return fetch('/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Command response:', data);
-        return data;
-    })
-    .catch(error => {
-        console.error('Error sending command:', error);
-        throw error;
-    });
+        .catch(error => console.error('Error updating status:', error));
 }
 
 // Clear console
@@ -171,7 +204,9 @@ function clearConsole() {
     if (consoleElement) {
         consoleElement.textContent = '';
     }
-    fetch('/clear-console');
+    fetch('/clear-console')
+        .then(response => response.json())
+        .catch(error => console.error('Error clearing console:', error));
 }
 
 // Scroll console to bottom

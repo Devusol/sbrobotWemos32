@@ -200,11 +200,11 @@ float calculateAngle()
     float gyroAngleChange = gyroRate * dt;
 
     // Complementary filter
-    float alpha = 0.02; // Reduced alpha for faster response to accelerometer
+    float alpha = 0.8; // Reduced alpha for faster response to accelerometer
     currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
 
     // Normalize angle to 0-360 degrees
     currentAngle = fmod(currentAngle + 360.0, 360.0);
-
+    
     return currentAngle;
 }

@@ -8,7 +8,7 @@
 #define MOTOR_RIGHT_REV 32
 
 #define MOTOR_LEFT_PWM 4
-#define MOTOR_LEFT_REV 27
+#define MOTOR_LEFT_REV 14
 #define MOTOR_LEFT_FWD 33
 
 // LEDC PWM configuration
@@ -177,7 +177,7 @@ void turnRight()
 
 void stopMovement()
 {
-    Serial.println("Stopping movement");
+    // Serial.println("Stopping movement");
 
     // Stop motors
     digitalWrite(MOTOR_LEFT_FWD, LOW);

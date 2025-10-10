@@ -21,7 +21,7 @@ const int LEDC_RESOLUTION = 8; // 0-255
 
 // Current speed (0-100)
 static int currentSpeed = 0;
-float targetAngle = 87.0;
+float targetAngle = -5.0;
 float deadBand = 0.0; // degrees
 
 // Initialize the controller
@@ -114,7 +114,7 @@ ControlParams handleTargetAngle(float targetDelta = 0, float deadbandDelta = 0)
     if (targetDelta != 0)
     {
         targetAngle += targetDelta;
-        targetAngle = constrain(targetAngle, 70.0, 110.0); // Limit target angle
+        targetAngle = constrain(targetAngle, -40.0, 40.0); // Limit target angle
         Serial.println("Target angle adjusted to " + String(targetAngle) + " degrees.");
     }
     params.targetAngle = targetAngle;

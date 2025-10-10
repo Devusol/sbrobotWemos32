@@ -6,6 +6,11 @@ AccelOffsets accelOffsets;
 float currentAngle = 0.0;
 unsigned long lastAngleTime = 0;
 
+// Offset of gyro from center of balance (in meters)
+const float gyro_offset_x = 0.0; // 30mm in positive X direction
+const float gyro_offset_y = 0.0;
+const float gyro_offset_z = 0.03;
+
 // Initialize the gyroscope
 void initGyro()
 {
@@ -124,18 +129,32 @@ Orientation readOrientation(const GyroData &gyro, const AccelData &accel)
     float dt = (currentTime - lastTime) / 1000.0; // Convert to seconds
     lastTime = currentTime;
 
-    // Integrate gyro data (adjusted for X-down, Y-right, Z-forward orientation)
-    // Pitch is rotation around Y-axis, roll around X-axis
-    pitch += -gyro.y * dt;
-    roll += gyro.x * dt;
-    yaw += gyro.z * dt;
+    // Compute angular acceleration for offset compensation
+    static float prev_gyro_x = 0.0, prev_gyro_y = 0.0, prev_gyro_z = 0.0;
+    float alpha_x = (gyro.x - prev_gyro_x) / dt;
+    float alpha_y = (gyro.y - prev_gyro_y) / dt;
+    float alpha_z = (gyro.z - prev_gyro_z) / dt;
+    prev_gyro_x = gyro.x;
+    prev_gyro_y = gyro.y;
+    prev_gyro_z = gyro.z;
+
+    // Compensate accelerometer for offset (assuming a_linear = 0)
+    float accel_corrected_x = accel.x - alpha_y * gyro_offset_z + alpha_z * gyro_offset_y - gyro.y * gyro.z * gyro_offset_y + gyro.z * gyro.z * gyro_offset_z; // Full formula, but simplified
+    float accel_corrected_y = accel.y - alpha_z * gyro_offset_x + alpha_x * gyro_offset_z - gyro.z * gyro.x * gyro_offset_z + gyro.x * gyro.x * gyro_offset_x;
+    float accel_corrected_z = accel.z - alpha_x * gyro_offset_y + alpha_y * gyro_offset_x - gyro.x * gyro.y * gyro_offset_x + gyro.y * gyro.y * gyro_offset_y;
+
+    // Integrate gyro data (adjusted for X-right, Y-up, Z-forward orientation)
+    // Pitch is rotation around X-axis, roll around Z-axis
+    pitch += gyro.x * dt;
+    roll += gyro.z * dt;
+    yaw += gyro.y * dt;
 
     // Calculate accelerometer angles for this orientation
-    // Gravity along +X, so up is -X
-    // Pitch (around Y): atan2(Z, X)
-    // Roll (around X): atan2(Y, X) - but since gravity along X, roll accel measurement is limited
-    float accelPitch = atan2(-accel.x, accel.z) * 180.0 / PI;
-    float accelRoll = atan2(accel.y, accel.z) * 180.0 / PI;
+    // Gravity along -Y, so up is +Y
+    // Pitch (around X): atan2(Z, Y)
+    // Roll (around Z): atan2(X, Y)
+    float accelPitch = atan2(-accel_corrected_z, accel_corrected_y) * 180.0 / PI;
+    float accelRoll = atan2(accel_corrected_x, accel_corrected_y) * 180.0 / PI;
 
     // Complementary filter to combine gyro and accel
     const float alpha = 0.95; // Reduced for faster response
@@ -190,21 +209,34 @@ float calculateAngle()
     float dt = (currentTime - lastAngleTime) / 1000.0; // Convert to seconds
     lastAngleTime = currentTime;
 
+    // Compute angular acceleration for offset compensation
+    static float prev_gyro_x = 0.0, prev_gyro_y = 0.0, prev_gyro_z = 0.0;
+    float alpha_x = (gyro.x - prev_gyro_x) / dt;
+    float alpha_y = (gyro.y - prev_gyro_y) / dt;
+    float alpha_z = (gyro.z - prev_gyro_z) / dt;
+    prev_gyro_x = gyro.x;
+    prev_gyro_y = gyro.y;
+    prev_gyro_z = gyro.z;
+
+    // Compensate accelerometer for offset (assuming a_linear = 0)
+    float accel_corrected_y = accel.y - alpha_z * gyro_offset_x - gyro.x * gyro.y * gyro_offset_x;
+    float accel_corrected_z = accel.z + alpha_y * gyro_offset_x - gyro.x * gyro.z * gyro_offset_x;
+
     // Low-pass filter accelerometer data to reduce motor vibration noise
-    static float filtered_ax = 0.0;
+    static float filtered_ay = 0.0;
     static float filtered_az = 0.0;
     const float accel_filter_alpha = 0.8; // Higher value = more smoothing
-    filtered_ax = accel_filter_alpha * filtered_ax + (1 - accel_filter_alpha) * accel.x;
-    filtered_az = accel_filter_alpha * filtered_az + (1 - accel_filter_alpha) * accel.z;
+    filtered_ay = accel_filter_alpha * filtered_ay + (1 - accel_filter_alpha) * accel_corrected_y;
+    filtered_az = accel_filter_alpha * filtered_az + (1 - accel_filter_alpha) * accel_corrected_z;
 
     // Calculate angle from accelerometer (pitch angle)
-    // Orientation: X down, Y right, Z forward
-    // Pitch angle around Y-axis: atan2(Z, X)
-    float accelAngle = atan2(-filtered_ax, filtered_az) * 180.0 / PI;
+    // Orientation: X right, Y up, Z forward
+    // Pitch angle around X-axis: atan2(Z, Y)
+    float accelAngle = atan2(-filtered_az, filtered_ay) * 180.0 / PI;
 
     // Low-pass filter gyro rate to reduce noise
     static float filtered_gyro_rate = 0.0;
-    float gyroRate = -gyro.y; // Y-axis for pitch rate
+    float gyroRate = gyro.x; // X-axis for pitch rate
     filtered_gyro_rate = accel_filter_alpha * filtered_gyro_rate + (1 - accel_filter_alpha) * gyroRate;
 
     // Integrate gyro rate to get angle change
@@ -215,7 +247,7 @@ float calculateAngle()
     currentAngle = alpha * (currentAngle + gyroAngleChange) + (1 - alpha) * accelAngle;
 
     // Normalize angle to 0-360 degrees
-    currentAngle = fmod(currentAngle + 360.0, 360.0);
+    currentAngle = fmod(currentAngle, 360.0);
     
     return currentAngle;
 }

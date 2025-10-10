@@ -19,8 +19,8 @@ function initAngleChart() {
         width: canvas.width,
         height: canvas.height,
         data: angleData,
-        minAngle: 45,
-        maxAngle: 135,
+        minAngle: -45,
+        maxAngle: 45,
 
         // Draw the chart
         draw: function () {

@@ -3,8 +3,8 @@
 #include "wifi/wifi_manager.h"
 #include "auto_tune.h"
 
-// PID controller for balancing
-PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
+// PID controller for balancing kp, ki, kd, integral, previousError, lastTime, baseSpeed
+PIDController balancePID = {5.0, 0.0, 0.0, 0.0, 0.0, 0, 20};
 
 // Counter for periodic angle data sending
 static int angleSendCounter = 0;
@@ -87,7 +87,7 @@ void balanceRobot()
 
     float error = angle - params.targetAngle; // Positive when tilted forward
     // Serial.printf("Angle: %.2f, Error: %.2f\n", angle, error);
-    // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, targetAngle, error);
+    // Serial.printf("Angle:%.2f\n, Target:%.2f\n, Error:%.2f\n", angle, params.targetAngle, error);
     // Serial.print(">Angle:");
     // Serial.println(angle);
     // Serial.print(">Target:");
@@ -118,7 +118,7 @@ void balanceRobot()
     int rightSpeed = balancePID.baseSpeed + pidOutput;
 
     // Stop motors if angle is too extreme (fallen over)
-    if (angle > 140.0)
+    if (angle > 60.0)
     {
         // Serial.println("Stop fell backward");
         stopMovement();
@@ -126,7 +126,7 @@ void balanceRobot()
         leftSpeed = 0;
         rightSpeed = 0;
     }
-    if (angle < 40.0)
+    if (angle < -60.0)
     {
         // Serial.println("Stop fell forward");
         stopMovement();
